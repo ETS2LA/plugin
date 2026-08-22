@@ -11,7 +11,6 @@ namespace ets2la_plugin::prism
     uint64_t base_ctrl_u::instance_ptr_address               = 0;
     uint32_t base_ctrl_u::game_actor_offset                  = 0;
     uint32_t base_ctrl_u::some_nearby_kdop_items_offset      = 0;
-    uint32_t base_ctrl_u::some_nearby_non_ai_vehicles_offset = 0;
 
     bool base_ctrl_u::scan_patterns()
     {
@@ -47,21 +46,6 @@ namespace ets2la_plugin::prism
             "Found base_ctrl::some_nearby_kdop_items_offset {:x}", base_ctrl_u::some_nearby_kdop_items_offset
         );
 
-        const auto tmp_vehicles_addr = memory::get_address_for_pattern(
-            patterns::base_ctrl::nearby_non_ai_vehicles::pattern, patterns::base_ctrl::nearby_non_ai_vehicles::offset
-        );
-
-        if ( tmp_vehicles_addr == 0 )
-        {
-            throw std::runtime_error( "Failed to find TMP vehicle list offset" );
-        }
-        base_ctrl_u::some_nearby_non_ai_vehicles_offset = *reinterpret_cast< uint32_t* >( tmp_vehicles_addr );
-
-        CCore::g_instance->debug(
-            "Found base_ctrl_u::some_nearby_non_ai_vehicles_offset {:x}",
-            base_ctrl_u::some_nearby_non_ai_vehicles_offset
-        );
-
         return true;
     }
 
@@ -82,20 +66,6 @@ namespace ets2la_plugin::prism
                 reinterpret_cast< uint64_t >( this ) + base_ctrl_u::some_nearby_kdop_items_offset
             );
         }
-        return nullptr;
-    }
-
-    // contains TruckerMP nearby players' trucks and trailers
-    // also contains trucks and trailers in menus (background/service center/truck dealer/etc...)
-    list_dyn_t< class vehicle_shared_u* >* base_ctrl_u::get_some_nearby_non_ai_vehicles_list() const
-    {
-        if ( base_ctrl_u::some_nearby_non_ai_vehicles_offset != 0 )
-        {
-            return reinterpret_cast< list_dyn_t< class vehicle_shared_u* >* >(
-                reinterpret_cast< uint64_t >( this ) + base_ctrl_u::some_nearby_non_ai_vehicles_offset
-            );
-        }
-
         return nullptr;
     }
 }

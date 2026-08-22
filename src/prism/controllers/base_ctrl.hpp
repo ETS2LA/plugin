@@ -112,13 +112,11 @@ namespace ets2la_plugin::prism
         static uint64_t instance_ptr_address;
         static uint32_t game_actor_offset;
         static uint32_t some_nearby_kdop_items_offset;
-        static uint32_t some_nearby_non_ai_vehicles_offset;
 
         static bool scan_patterns();
         static base_ctrl_u* get();
 
         array_dyn_t< class kdop_item_t* >* get_nearby_kdop_items() const;
-        list_dyn_t< class vehicle_shared_u* >* get_some_nearby_non_ai_vehicles_list() const;
     };
     // static_assert( sizeof( base_ctrl_u ) == 0x3088 );
 

@@ -9,12 +9,6 @@ namespace ets2la_plugin::patterns
         inline constexpr auto offset_instance         = 3;
         inline constexpr auto offset_game_actor       = 14;
 
-        namespace nearby_non_ai_vehicles
-        {
-            inline constexpr auto pattern = "48 8d bb ? ? ? ? e8 ? ? ? ? 48 8b bb ? ? ? ? e8 ? ? ? ? 48 8b bd";
-            inline constexpr auto offset  = 3;
-        }
-
         namespace nearby_kdop_items
         {
             inline constexpr auto pattern = "48 8d b7 ? ? ? ? 48 8d 97 ? ? ? ? 48 89 e5";

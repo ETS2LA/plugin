@@ -14,8 +14,6 @@
 #include "prism/management/item/prefab_item.hpp"
 #include "prism/management/item/segment.hpp"
 #include "prism/management/item/semaphore_instance.hpp"
-#include "prism/vehicles/game_physics_vehicle.hpp"
-#include "prism/vehicles/game_trailer_actor.hpp"
 
 #include <math.h>
 #include <algorithm>
@@ -58,8 +56,6 @@ namespace ets2la_plugin
     {
         this->active_actors.clear();
         this->parked_actors.clear();
-        this->tmp_vehicles.clear();
-        this->tmp_trailers.clear();
         this->semaphore_objects.clear();
     }
 
@@ -194,51 +190,6 @@ namespace ets2la_plugin
         }
     }
 
-    void TrafficProcessor::get_truckersmp_traffic_data()
-    {
-        auto* game_ctrl = prism::game_ctrl_u::get();
-        if (game_ctrl == nullptr)
-        {
-            return;
-        }
-
-        static prism::unit_descriptor_t *stored_game_trailer_actor_unit_descriptor = nullptr;
-        const auto* vehicles_list = game_ctrl->get_some_nearby_non_ai_vehicles_list();
-        if (vehicles_list == nullptr)
-        {
-            return;
-        }
-
-
-        auto* node = vehicles_list->begin;
-        for(auto i = 0; i < vehicles_list->size && node->item != vehicles_list->empty_item; ++i, node = node->next)
-        {
-            const auto unit_descriptor = node->item->get_unit_descriptor();
-
-            if (stored_game_trailer_actor_unit_descriptor == nullptr)
-            {
-                // check if the node item is of type 'game_trailer_actor' and store the address of the unit descriptor if it is
-                // that way we can just compare the unit descriptor addresses instead of comparing strings every time
-                if (strcmp(*unit_descriptor->p_class_name, "game_trailer_actor") == 0)
-                {
-                    stored_game_trailer_actor_unit_descriptor = unit_descriptor;
-                }
-            }
-
-            const auto is_trailer = stored_game_trailer_actor_unit_descriptor == unit_descriptor;
-            if (is_trailer)
-            {
-                prism::game_trailer_actor_u* trailer = reinterpret_cast<prism::game_trailer_actor_u *>(node->item);
-                tmp_trailers.push_back(trailer);
-            }
-            else
-            {
-                auto *truck = reinterpret_cast<prism::game_physics_vehicle_u *>(node->item);
-                tmp_vehicles.push_back(truck);
-            }
-        }
-    }
-
     void TrafficProcessor::write_active_traffic_data() const
     {
         std::vector<processor_traffic_vehicle_object_t> traffic_objects;
@@ -250,7 +201,6 @@ namespace ets2la_plugin
         for (const auto& traffic_actor : this->active_actors)
         {
             processor_traffic_vehicle_object_t traffic_object;
-            traffic_object.type = 0;
             traffic_object.traffic_actor = traffic_actor.traffic_actor;
             traffic_object.truck_distance = traffic_actor.distance;
             traffic_object.speed = traffic_actor.speed;
@@ -258,39 +208,6 @@ namespace ets2la_plugin
 
             traffic_objects.push_back(traffic_object);
         }
-
-        for (const auto& truck : this->tmp_vehicles)
-        {
-            processor_traffic_vehicle_object_t traffic_object;
-            traffic_object.type = 1;
-            traffic_object.tmp_truck = truck;
-
-            prism::placement_t truck_placement;
-            truck->get_physics_placement(&truck_placement);
-            traffic_object.truck_distance = truck_placement.get_distance_to(this->truck_pos);
-
-            traffic_objects.push_back(traffic_object);
-        }
-
-        for (const auto& trailer : this->tmp_trailers)
-        {
-            processor_traffic_vehicle_object_t traffic_object;
-            traffic_object.type = 2;
-
-            prism::placement_t trailer_placement;
-            trailer->get_physics_placement(&trailer_placement);
-            traffic_object.truck_distance = trailer_placement.get_distance_to(this->truck_pos);
-
-            auto* trailer_obj = trailer;
-            while (trailer_obj != nullptr)
-            {
-                traffic_object.tmp_trailers.push_back(trailer_obj);
-                trailer_obj = trailer_obj->get_slave_trailer();
-            }
-
-            traffic_objects.push_back(traffic_object);
-        }
-
 
         std::sort(traffic_objects.begin(), traffic_objects.end(), [](const processor_traffic_vehicle_object_t& a, const processor_traffic_vehicle_object_t& b) {
             return a.truck_distance < b.truck_distance;
@@ -312,126 +229,51 @@ namespace ets2la_plugin
             TrafficVehicleObject vehicle_object = {};
             vehicle_object.vehicle.id = -1;
 
-            if (traffic_object.type == 0) // traffic_actor (ai vehicle/convoy players/escort vehicles)
+            const auto* traffic_actor = traffic_object.traffic_actor;
+            const auto position = get_center_coords(traffic_actor->placement, traffic_actor->aabox);
+            vehicle_object.vehicle = TrafficVehicle{
+                position.x,
+                position.y,
+                position.z,
+                traffic_actor->placement.rot.w,
+                traffic_actor->placement.rot.x,
+                traffic_actor->placement.rot.y,
+                traffic_actor->placement.rot.z,
+                abs(traffic_actor->aabox.start.x - traffic_actor->aabox.end.x), // width
+                abs(traffic_actor->aabox.start.y - traffic_actor->aabox.end.y), // height
+                abs(traffic_actor->aabox.start.z - traffic_actor->aabox.end.z), // length
+                traffic_object.speed,          // speed
+                traffic_object.acceleration,   // acceleration
+                0,                                        // trailer_count
+                get_uid_for_vehicle(reinterpret_cast<uintptr_t>(traffic_actor)), // id
+                false,                                    // is_tmp
+                false                                     // is_trailer
+            };
+
+            auto trailer = traffic_actor->slave;
+            int i = 0;
+            while (trailer != nullptr && i < 3)
             {
-                const auto* traffic_actor = traffic_object.traffic_actor;
-                const auto position = get_center_coords(traffic_actor->placement, traffic_actor->aabox);
-                vehicle_object.vehicle = TrafficVehicle{
-                    position.x,
-                    position.y,
-                    position.z,
-                    traffic_actor->placement.rot.w,
-                    traffic_actor->placement.rot.x,
-                    traffic_actor->placement.rot.y,
-                    traffic_actor->placement.rot.z,
-                    abs(traffic_actor->aabox.start.x - traffic_actor->aabox.end.x), // width
-                    abs(traffic_actor->aabox.start.y - traffic_actor->aabox.end.y), // height
-                    abs(traffic_actor->aabox.start.z - traffic_actor->aabox.end.z), // length
-                    traffic_object.speed,          // speed
-                    traffic_object.acceleration,   // acceleration
-                    0,                                        // trailer_count
-                    get_uid_for_vehicle(reinterpret_cast<uintptr_t>(traffic_actor)), // id
-                    false,                                    // is_tmp
-                    false                                     // is_trailer
-                };
-
-                auto trailer = traffic_actor->slave;
-                int i = 0;
-                while (trailer != nullptr && i < 3)
-                {
-                    const auto trailer_position = get_center_coords(trailer->placement, trailer->aabox);
-                    vehicle_object.trailers[i] = TrafficTrailer{
-                        trailer_position.x,
-                        trailer_position.y,
-                        trailer_position.z,
-                        trailer->placement.rot.w,
-                        trailer->placement.rot.x,
-                        trailer->placement.rot.y,
-                        trailer->placement.rot.z,
-                        abs(trailer->aabox.start.x - trailer->aabox.end.x), // width
-                        abs(trailer->aabox.start.y - trailer->aabox.end.y), // height
-                        abs(trailer->aabox.start.z - trailer->aabox.end.z), // length
-                    };
-
-                    trailer = trailer->slave;
-                    i++;
-                }
-
-                vehicle_object.vehicle.trailer_count = i;
-            }
-            else if (traffic_object.type == 1) // tmp vehicle
-            {
-                const auto* tmp_truck = traffic_object.tmp_truck;
-                prism::placement_t truck_placement;
-                tmp_truck->get_physics_placement(&truck_placement);
-                const auto truck_position = get_center_coords(truck_placement, tmp_truck->aabox);
-                vehicle_object.vehicle = TrafficVehicle{
-                    truck_position.x,
-                    truck_position.y,
-                    truck_position.z,
-                    truck_placement.rot.w,
-                    truck_placement.rot.x,
-                    truck_placement.rot.y,
-                    truck_placement.rot.z,
-                    abs(tmp_truck->aabox.start.x - tmp_truck->aabox.end.x), // width
-                    abs(tmp_truck->aabox.start.y - tmp_truck->aabox.end.y), // height
-                    abs(tmp_truck->aabox.start.z - tmp_truck->aabox.end.z), // length
-                    0,                               // speed (null)
-                    0,                               // acceleration (null)
-                    0,                               // trailer_count
-                    get_uid_for_vehicle(reinterpret_cast<uintptr_t>(tmp_truck)),
-                    true,                            // is_tmp
-                    false                            // is_trailer
-                };
-            }
-            else if (traffic_object.type == 2) // tmp trailer
-            {
-                const auto* tmp_trailer = traffic_object.tmp_trailers.empty() ? nullptr : traffic_object.tmp_trailers[0];
-                if (tmp_trailer == nullptr)
-                    continue;
-
-                prism::placement_t trailer_placement;
-                tmp_trailer->get_physics_placement(&trailer_placement);
-                const auto trailer_position = get_center_coords(trailer_placement, tmp_trailer->aabox);
-                vehicle_object.vehicle = TrafficVehicle{
+                const auto trailer_position = get_center_coords(trailer->placement, trailer->aabox);
+                vehicle_object.trailers[i] = TrafficTrailer{
                     trailer_position.x,
                     trailer_position.y,
                     trailer_position.z,
-                    trailer_placement.rot.w,
-                    trailer_placement.rot.x,
-                    trailer_placement.rot.y,
-                    trailer_placement.rot.z,
-                    abs(tmp_trailer->aabox.start.x - tmp_trailer->aabox.end.x), // width
-                    abs(tmp_trailer->aabox.start.y - tmp_trailer->aabox.end.y), // height
-                    abs(tmp_trailer->aabox.start.z - tmp_trailer->aabox.end.z), // length
-                    0,                               // speed (null)
-                    0,                               // acceleration (null)
-                    0,                               // trailer_count
-                    get_uid_for_vehicle(reinterpret_cast<uintptr_t>(tmp_trailer)),
-                    true,                            // is_tmp
-                    true                             // is_trailer
+                    trailer->placement.rot.w,
+                    trailer->placement.rot.x,
+                    trailer->placement.rot.y,
+                    trailer->placement.rot.z,
+                    abs(trailer->aabox.start.x - trailer->aabox.end.x), // width
+                    abs(trailer->aabox.start.y - trailer->aabox.end.y), // height
+                    abs(trailer->aabox.start.z - trailer->aabox.end.z), // length
                 };
 
-                for (size_t i = 1; i < traffic_object.tmp_trailers.size() && i < 4; i++)
-                {
-                    const auto* trailer = traffic_object.tmp_trailers[i];
-                    prism::placement_t trailer_placement;
-                    trailer->get_physics_placement(&trailer_placement);
-                    const auto trailer_position = get_center_coords(trailer_placement, trailer->aabox);
-                    vehicle_object.trailers[i-1] = TrafficTrailer{
-                        trailer_position.x,
-                        trailer_position.y,
-                        trailer_position.z,
-                        trailer_placement.rot.w,
-                        trailer_placement.rot.x,
-                        trailer_placement.rot.y,
-                        trailer_placement.rot.z,
-                        abs(trailer->aabox.start.x - trailer->aabox.end.x), // width
-                        abs(trailer->aabox.start.y - trailer->aabox.end.y), // height
-                        abs(trailer->aabox.start.z - trailer->aabox.end.z)  // length
-                    };
-                }
+                trailer = trailer->slave;
+                i++;
             }
+
+            vehicle_object.vehicle.trailer_count = i;
+
 
             if(vehicle_object.vehicle.id == -1)
             {
@@ -678,10 +520,6 @@ namespace ets2la_plugin
         this->clear_data();
 
         this->get_ai_traffic_data();
-
-#if defined(_WIN32)
-        this->get_truckersmp_traffic_data();
-#endif
 
         this->get_player_traffic_data();
         this->get_traffic_objects_data();

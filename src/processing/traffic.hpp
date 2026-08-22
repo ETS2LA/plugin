@@ -13,17 +13,13 @@
 
 namespace ets2la_plugin
 {
-    // Used internally in the TrafficProcessor to store ai and tmp vehicles
-    // in a way I can use them easily.
+    // Used internally in the TrafficProcessor to store ai in a way I can use them easily.
     struct processor_traffic_vehicle_object_t
     {
-        short type; // 0 = ai, 1 = tmp, 2 = tmp trailer
         float truck_distance;
         float speed;
         float acceleration;
         const prism::traffic_actor_t* traffic_actor;
-        prism::game_physics_vehicle_u* tmp_truck;
-        std::vector<prism::game_trailer_actor_u*> tmp_trailers;
     };
 
     // Used internally in the TrafficProcessor to traffic objects (traffic lights and gates)
@@ -65,15 +61,12 @@ namespace ets2la_plugin
             std::vector<processor_active_actor_object_t> active_actors = {};
             std::vector<processor_actor_object_t> parked_actors = {};
             std::vector<processor_semaphore_object_t> semaphore_objects = {};
-            std::vector<prism::game_physics_vehicle_u*> tmp_vehicles = {};
-            std::vector<prism::game_trailer_actor_u*> tmp_trailers = {};
 
             void clear_data();
             short get_uid_for_vehicle(uintptr_t vehicle_ptr) const;
             void process_traffic_object(const prism::traffic_object_t* traffic_object, const uint32_t id = 0);
 
             void get_ai_traffic_data();
-            void get_truckersmp_traffic_data();
             void get_traffic_objects_data();
             void get_player_traffic_data();
 
@@ -89,7 +82,7 @@ namespace ets2la_plugin
             : scs_log_(scs_log), memory_handler_(memory_handler)
             {
             }
-            
+
             void tick(scs_value_dplacement_t truck_pos);
             float3_t get_center_coords(const prism::placement_t& placement, const prism::aabox_t& aabox) const;
     };
