@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#pragma pack(push, 1)
+#pragma pack( push, 1 )
 
 namespace ets2la_plugin
 {
@@ -12,7 +12,7 @@ namespace ets2la_plugin
         float y; // 0x0004 (0x04)
     };
 
-    static_assert(sizeof( float2_t ) == 0x08);
+    static_assert( sizeof( float2_t ) == 0x08 );
 
     struct float3_t // size: 0x000c
     {
@@ -21,10 +21,11 @@ namespace ets2la_plugin
         float z; // 0x0008 (0x04)
 
         float3_t rotate( const struct quat_t& ) const;
+        float3_t operator-( const float3_t& b ) const;
         float3_t operator+( const float3_t& b ) const;
     };
 
-    static_assert(sizeof( float3_t ) == 0x0c);
+    static_assert( sizeof( float3_t ) == 0x0c );
 
     struct quat_t // size: 0x0010
     {
@@ -32,6 +33,8 @@ namespace ets2la_plugin
         float x; // 0x0004 (0x04)
         float y; // 0x0008 (0x04)
         float z; // 0x000c (0x04)
+
+        quat_t conjugate() const;
     };
 
     struct float4x4_t // size: 0x0040
@@ -57,7 +60,7 @@ namespace ets2la_plugin
         float m44; // 0x003c (0x04)
     };
 
-    static_assert(sizeof( quat_t ) == 0x10);
+    static_assert( sizeof( quat_t ) == 0x10 );
 
     struct int3_t // size: 0x000c
     {
@@ -66,32 +69,31 @@ namespace ets2la_plugin
         int z; // 0x0008 (0x04)
     };
 
-    static_assert(sizeof( int3_t ) == 0x0c);
+    static_assert( sizeof( int3_t ) == 0x0c );
 
     namespace prism
     {
         class placement_t // Size: 0x0020
         {
         public:
-            float3_t pos; //0x0000 (0x0c)
-            int16_t cx; //0x000C (0x02)
-            int16_t cz; //0x000E (0x02)
-            quat_t rot; //0x0010 (0x10)
+            float3_t pos; // 0x0000 (0x0c)
+            int16_t cx;   // 0x000C (0x02)
+            int16_t cz;   // 0x000E (0x02)
+            quat_t rot;   // 0x0010 (0x10)
 
             float3_t to_global_position() const;
-            float get_distance_to(const float3_t position) const;
-
+            float get_distance_to( const float3_t position ) const;
         };
-        static_assert(sizeof(placement_t) == 0x20);
+        static_assert( sizeof( placement_t ) == 0x20 );
 
         class aabox_t // Size: 0x0018 1.54
         {
         public:
             float3_t start; // 0x0000 (0x0c)
-            float3_t end; // 0x000C (0x0c)
+            float3_t end;   // 0x000C (0x0c)
         };
         static_assert( sizeof( aabox_t ) == 0x18 );
 
     }
 }
-#pragma pack(pop)
+#pragma pack( pop )

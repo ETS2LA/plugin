@@ -12,10 +12,10 @@ namespace ets2la_plugin
     float prism::placement_t::get_distance_to( const float3_t dest ) const
     {
         const auto position = this->to_global_position();
-        const float dx = position.x - dest.x;
-        const float dy = position.y - dest.y;
-        const float dz = position.z - dest.z;
-        return std::sqrt(dx * dx + dy * dy + dz * dz);
+        const float dx      = position.x - dest.x;
+        const float dy      = position.y - dest.y;
+        const float dz      = position.z - dest.z;
+        return std::sqrt( dx * dx + dy * dy + dz * dz );
     }
 
     float3_t float3_t::rotate( const quat_t& rotation ) const
@@ -47,6 +47,24 @@ namespace ets2la_plugin
             this->x + b.x,
             this->y + b.y,
             this->z + b.z,
+        };
+    }
+    float3_t float3_t::operator-( const float3_t& b ) const
+    {
+        return {
+            this->x - b.x,
+            this->y - b.y,
+            this->z - b.z,
+        };
+    }
+
+    quat_t quat_t::conjugate() const
+    {
+        return {
+            this->w,
+            -this->x,
+            -this->y,
+            -this->z,
         };
     }
 }

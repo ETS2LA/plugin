@@ -61,7 +61,7 @@ namespace ets2la_plugin
         float m42;   // 88
         float m43;   // 92
         float m44;   // 96
-        float truck_pos_x; // 100 
+        float truck_pos_x; // 100
         float truck_pos_y; // 104
         float truck_pos_z; // 108
         float truck_rot_w; // 112
@@ -198,6 +198,10 @@ namespace ets2la_plugin
         CMemoryHandler *memory_manager_;
         TrafficProcessor *traffic_processor_;
 
+#ifdef INCLUDE_GUI
+        class CGui* gui_;
+#endif
+
         mutable bool was_overriding_acceleration = false;
         mutable bool was_overriding_steering = false;
 
@@ -224,6 +228,10 @@ namespace ets2la_plugin
 
         TrafficProcessor *get_traffic_processor() const { return this->traffic_processor_; }
         CMemoryHandler *get_memory_manager() const { return this->memory_manager_; }
+
+#if INCLUDE_GUI
+        inline CGui* get_gui() const { return this->gui_; }
+#endif
 
         template <class... T>
         void debug(const char *fmt_s, T &&...args) const

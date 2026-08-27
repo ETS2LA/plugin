@@ -8,6 +8,7 @@ set(GAME_VERSION_MAJOR 1)
 set(GAME_VERSION_MINOR 60)
 set(GAME_VERSION_PATCH x)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 project(ets2la_plugin VERSION ${PLUGIN_VERSION_MAJOR}.${PLUGIN_VERSION_MINOR}.${PLUGIN_VERSION_PATCH})
 
 add_library(${CMAKE_PROJECT_NAME} SHARED)
@@ -33,6 +34,19 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./src/processing/traffic.cpp
 )
 
+if (INCLUDE_GUI)
+    message("Including ImGui")
+    target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+        ./src/gui/hooks/graphics/opengl.cpp
+        ./src/gui/gui.cpp
+        ./src/gui/utils.cpp
+        ./src/gui/windows/traffic.cpp
+    )
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE INCLUDE_GUI)
+endif()
+
+
+
 if (WIN32)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/memory/memory_utils.win32.cpp
@@ -41,6 +55,11 @@ elseif (UNIX AND NOT APPLE)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/memory/memory_utils.linux.cpp
     )
+    if (INCLUDE_GUI)
+        target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+            ./src/gui/hooks/input/x11.cpp
+        )
+    endif()
 endif()
 
 configure_file(
@@ -75,5 +94,10 @@ endif()
 add_subdirectory(vendor)
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src vendor/scs_sdk/include)
+
+if (INCLUDE_GUI)
+    target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE vendor/imgui)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE imgui PolyHook_2)
+endif()
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE fmt::fmt-header-only)

@@ -23,6 +23,7 @@ namespace ets2la_plugin::prism
         class remote_clients_jip_context_t;
         class data_rule_source_t;
 
+    public:
         class spawned_vehicle_t // Size: 0x0010
         {
         public:
@@ -31,7 +32,6 @@ namespace ets2la_plugin::prism
         };
         static_assert( sizeof( spawned_vehicle_t ) == 0x10 );
 
-    public:
         char pad_WLA_0x0010[ 8 ];                                    // W|L|A 0x0010 (W|L|A 0x08)
         class traffic_data_u* traffic_data;                          // W|L|A 0x0018 (W|L|A 0x08)
         class color_array_u* color_array;                            // W|L|A 0x0020 (W|L|A 0x08)
@@ -92,7 +92,7 @@ namespace ets2la_plugin::prism
         array_dyn_t< class remote_clients_jip_context_t > N00001DC5; // W 0x06C0, L|A 0x0598 (W 0x28, L|A 0x20)
         char pad_W_0x06E8__LA_0x05B8[ 104 ];                         // W 0x06E8, L|A 0x05B8 (W|L|A 0x68)
         string_dyn_t N00001DD6;                                      // W 0x0750, L|A 0x0620 (W|L|A 0x18)
-        map_hashed_t< class traffic_segment_t*, void* > N0000EDEA; // W 0x0770, L|A 0x0638 (W 0x80, L|A 0x60)
+        map_hashed_t< class traffic_segment_t*, void* > N0000EDEA;   // W 0x0770, L|A 0x0638 (W 0x80, L|A 0x60)
     };
 
 #if defined( _WIN32 )

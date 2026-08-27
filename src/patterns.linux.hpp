@@ -5,9 +5,9 @@ namespace ets2la_plugin::patterns
 
     namespace base_ctrl
     {
-        inline constexpr auto pattern                 = "48 8b 05 ? ? ? ? 48 8b 7f ? 48 8b 80 ? ? ? ? 4c";
-        inline constexpr auto offset_instance         = 3;
-        inline constexpr auto offset_game_actor       = 14;
+        inline constexpr auto pattern           = "48 8b 05 ? ? ? ? 48 8b 7f ? 48 8b 80 ? ? ? ? 4c";
+        inline constexpr auto offset_instance   = 3;
+        inline constexpr auto offset_game_actor = 14;
 
         namespace nearby_non_ai_vehicles
         {
@@ -34,14 +34,14 @@ namespace ets2la_plugin::patterns
 
     namespace camera_manager
     {
-        inline constexpr auto pattern                 = "48 8b 1d ? ? ? ? 8b 43 ? 85 c0";
-        inline constexpr auto offset_instance         = 3;
+        inline constexpr auto pattern         = "48 8b 1d ? ? ? ? 8b 43 ? 85 c0";
+        inline constexpr auto offset_instance = 3;
     }
 
     namespace game_traffic
     {
-        inline constexpr auto pattern                 = "48 8b 0d ? ? ? ? 48 85 f6 4c 8b 81";
-        inline constexpr auto offset_instance         = 3;
+        inline constexpr auto pattern         = "48 8b 0d ? ? ? ? 48 85 f6 4c 8b 81";
+        inline constexpr auto offset_instance = 3;
     }
 
     namespace vehicle_shared
@@ -86,5 +86,54 @@ namespace ets2la_plugin::patterns
             inline constexpr auto offset  = 6;
         }
     }
+
+#ifdef INCLUDE_GUI
+
+    namespace graphics
+    {
+        namespace gl
+        {
+            namespace device_t
+            {
+                inline constexpr auto pattern = "48 8b 05 ? ? ? ? 48 8b bd ? ? ? ? ff 90";
+                inline constexpr auto offset  = 3;
+            }
+            namespace glx_swap_buffers
+            {
+                inline constexpr auto pattern = "48 8b 3b 48 8b 70 ? 41 ff 94 24";
+                inline constexpr auto offset  = 11;
+            }
+        }
+    }
+
+    namespace input
+    {
+
+        namespace x11
+        {
+            namespace key_input
+            {
+                inline constexpr auto pattern = "be ? ? ? ? 48 89 c7 e8 ? ? ? ? e9 ? ? ? ? 8b 35";
+                inline constexpr auto offset  = 9; // fn call
+            }
+
+            namespace button_input
+            {
+                inline constexpr auto pattern =
+                    "48 85 c0 0f 84 ? ? ? ? e8 ? ? ? ? be ? ? ? ? 48 89 c7 e8 ? ? ? ? e9 ? ? ? ? 66";
+                inline constexpr auto offset = 23; // fn call
+            }
+
+            namespace pointer_motion_input
+            {
+
+                inline constexpr auto pattern = "be ? ? ? ? 48 89 c7 e8 ? ? ? ? e9 ? ? ? ? 48 8b 3d";
+                inline constexpr auto offset  = 9; // fn call
+            }
+        }
+
+    }
+
+#endif
 
 }

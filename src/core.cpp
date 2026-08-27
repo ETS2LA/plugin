@@ -1,6 +1,10 @@
 ﻿#include "core.hpp"
 #include "consts.hpp"
 
+#ifdef INCLUDE_GUI
+#include "gui/gui.hpp"
+#endif
+
 #include "memory/memory_utils.hpp"
 #include "sdk/stores.hpp"
 
@@ -388,6 +392,11 @@ namespace ets2la_plugin
             return false;
         }
 
+#ifdef INCLUDE_GUI
+        this->gui_ = new CGui();
+        this->gui_->init();
+#endif
+
         return true;
     }
 
@@ -395,5 +404,8 @@ namespace ets2la_plugin
     {
         delete this->memory_manager_;
         delete this->traffic_processor_;
+#ifdef INCLUDE_GUI
+        delete this->gui_;
+#endif
     }
 }

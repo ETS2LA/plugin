@@ -1,0 +1,61 @@
+{
+    "version": 10,
+    "configurePresets": [
+        {
+            "name": "Debug",
+            "displayName": "Debug Config",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "IS_DEBUG_BUILD": true,
+                "INCLUDE_GUI": true
+            }
+        },
+        {
+            "name": "Release",
+            "displayName": "Release Config",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Debug",
+            "configurePreset": "Debug"
+        },
+        {
+            "name": "Release",
+            "configurePreset": "Release"
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "Debug",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "Debug"
+                },
+                {
+                    "type": "build",
+                    "name": "Debug"
+                }
+            ]
+        },
+        {
+            "name": "Release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "Release"
+                },
+                {
+                    "type": "build",
+                    "name": "Release"
+                }
+            ]
+        }
+    ]
+}
