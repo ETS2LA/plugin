@@ -2,3 +2,5 @@ LIBRARY ets2la_plugin
 EXPORTS
 scs_telemetry_init=scs_telemetry_init
 scs_telemetry_shutdown=scs_telemetry_shutdown
+truckersmp_init=truckersmp_init
+truckersmp_shutdown=truckersmp_shutdown

@@ -1,6 +1,7 @@
 ﻿#include "core.hpp"
 #include "consts.hpp"
 
+#include "utils/vehicle.hpp"
 #include "memory/memory_utils.hpp"
 #include "sdk/stores.hpp"
 
@@ -19,6 +20,7 @@
 #include "prism/game_actor.hpp"
 
 #include "processing/traffic.hpp"
+#include "processing/mp_players.hpp"
 
 #include <ctime>
 #include <cmath>
@@ -41,7 +43,6 @@ namespace ets2la_plugin
     CCore::CCore(const scs_telemetry_init_params_v101_t *init_params) : init_params_(init_params)
     {
         scs_log_ = init_params->common.log;
-        memory_manager_ = new CMemoryHandler(scs_log_);
         g_instance = this;
     }
 
@@ -102,7 +103,7 @@ namespace ets2la_plugin
                 const auto* our_truck = game_actor->game_physics_vehicle;
                 prism::placement_t truck_placement;
                 our_truck->get_interpolated_placement(&truck_placement);
-                const auto truck_position = traffic_processor_->get_center_coords(truck_placement, our_truck->aabox);
+                const auto truck_position = utils::vehicle::get_center_coords(truck_placement, our_truck->aabox);
 
                 data.truck_pos_x = truck_position.x;
                 data.truck_pos_y = truck_position.y;
@@ -245,7 +246,7 @@ namespace ets2la_plugin
         // "1.58.1" -> 15801
         // It's easier to send an int than a string through shared mem.
         int version = 0;
-        std::string version_str = VERSION;
+        std::string version_str = ETS2LA_SDK_VERSION;
         try {
             version_str.erase(std::remove(version_str.begin(), version_str.end(), '.'), version_str.end());
             version = std::stoi(version_str);
@@ -267,6 +268,7 @@ namespace ets2la_plugin
 
         // Local\ETS2LATraffic, Local\ETS2LASemaphore, Local\ETS2LAParkedVehicles
         traffic_processor_->tick(this->truck_pos);
+        mp_players_processor_->tick(this->truck_pos);
 
         // Local\ETS2LARoute
         this->get_navigation_data();
@@ -344,7 +346,7 @@ namespace ets2la_plugin
 
     bool CCore::init()
     {
-        this->info("Initializing {}", VERSION);
+        this->info("Initializing {}", ETS2LA_SDK_VERSION);
         this->info("Expected game version: {}", GAME_VERSION);
 
         // parse GAME_VERSION from for example "1.55.x" to "1.55." (removing the "x" everywhere)
@@ -381,6 +383,7 @@ namespace ets2la_plugin
         this->memory_manager_->init();
 
         this->traffic_processor_ = new TrafficProcessor(scs_log_, this->memory_manager_);
+        this->mp_players_processor_ = new MpPlayerProcessor(this->memory_manager_);
 
         if (this->init_params_->register_for_event(SCS_TELEMETRY_EVENT_frame_end, telemetry_tick, nullptr) != SCS_RESULT_ok)
         {
@@ -395,5 +398,6 @@ namespace ets2la_plugin
     {
         delete this->memory_manager_;
         delete this->traffic_processor_;
+        delete this->mp_players_processor_;
     }
 }

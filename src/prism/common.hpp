@@ -68,6 +68,13 @@ namespace ets2la_plugin
 
     static_assert(sizeof( int3_t ) == 0x0c);
 
+    struct dimension_t // size: 0x000c
+    {
+        float width; // 0x0000 (0x04)
+        float height; // 0x0004 (0x04)
+        float length; // 0x0008 (0x04)
+    };
+
     namespace prism
     {
         class placement_t // Size: 0x0020
@@ -89,6 +96,8 @@ namespace ets2la_plugin
         public:
             float3_t start; // 0x0000 (0x0c)
             float3_t end; // 0x000C (0x0c)
+
+            dimension_t get_dimensions() const;
         };
         static_assert( sizeof( aabox_t ) == 0x18 );
 

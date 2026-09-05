@@ -14,6 +14,7 @@
 #include "prism/management/item/prefab_item.hpp"
 #include "prism/management/item/segment.hpp"
 #include "prism/management/item/semaphore_instance.hpp"
+#include "utils/vehicle.hpp"
 
 #include <math.h>
 #include <algorithm>
@@ -21,22 +22,6 @@
 
 namespace ets2la_plugin
 {
-    // vehicle coordinates are not at the center of the vehicle, so we use the aabox to calculate the center
-    float3_t TrafficProcessor::get_center_coords(const prism::placement_t& placement, const prism::aabox_t& aabox) const
-    {
-        const float width = abs(aabox.start.x - aabox.end.x);
-        const float height = abs(aabox.start.y - aabox.end.y);
-        const float length = abs(aabox.start.z - aabox.end.z);
-
-        float3_t offset = {
-            aabox.start.x + (width / 2.f),
-            aabox.start.y + (height / 2.f),
-            aabox.start.z + (length / 2.f),
-        };
-
-        return placement.to_global_position() + offset.rotate(placement.rot);
-    }
-
     short TrafficProcessor::get_uid_for_vehicle(uintptr_t vehicle_ptr) const
     {
         auto it = vehicle_uids.find(vehicle_ptr);
@@ -213,10 +198,7 @@ namespace ets2la_plugin
             return a.truck_distance < b.truck_distance;
         });
 
-        // Now we need to convert this data to the format the memory uses. Once again the code
-        // for TMP vehicles is convoluted, so if there's a better way to match trailers to their
-        // trucks then do the same as above and ping @Tumppi066 on our Discord server or create a PR.
-        // (especially figuring out a way to match the trailers to their trucks)
+        // Now we need to convert this data to the format the memory uses.
 
         std::array<TrafficVehicleObject, 40> traffic_vehicle_objects = {};
         int count = 0;
@@ -230,7 +212,7 @@ namespace ets2la_plugin
             vehicle_object.vehicle.id = -1;
 
             const auto* traffic_actor = traffic_object.traffic_actor;
-            const auto position = get_center_coords(traffic_actor->placement, traffic_actor->aabox);
+            const auto position = utils::vehicle::get_center_coords(traffic_actor->placement, traffic_actor->aabox);
             vehicle_object.vehicle = TrafficVehicle{
                 position.x,
                 position.y,
@@ -246,15 +228,13 @@ namespace ets2la_plugin
                 traffic_object.acceleration,   // acceleration
                 0,                                        // trailer_count
                 get_uid_for_vehicle(reinterpret_cast<uintptr_t>(traffic_actor)), // id
-                false,                                    // is_tmp
-                false                                     // is_trailer
             };
 
             auto trailer = traffic_actor->slave;
             int i = 0;
             while (trailer != nullptr && i < 3)
             {
-                const auto trailer_position = get_center_coords(trailer->placement, trailer->aabox);
+                const auto trailer_position = utils::vehicle::get_center_coords(trailer->placement, trailer->aabox);
                 vehicle_object.trailers[i] = TrafficTrailer{
                     trailer_position.x,
                     trailer_position.y,
@@ -489,7 +469,7 @@ namespace ets2la_plugin
                 break;
             }
 
-            const auto position = get_center_coords(actor_data.traffic_actor->placement, actor_data.traffic_actor->aabox);
+            const auto position = utils::vehicle::get_center_coords(actor_data.traffic_actor->placement, actor_data.traffic_actor->aabox);
             ParkedVehicle vehicle_object = {
                 position.x,
                 position.y,

@@ -31,11 +31,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./src/prism/vehicles/vehicle_shared.cpp
 
     ./src/processing/traffic.cpp
+    ./src/processing/mp_players.cpp
 )
 
 if (WIN32)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/memory/memory_utils.win32.cpp
+        ./src/main_truckersmp.cpp
     )
 elseif (UNIX AND NOT APPLE)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE
@@ -65,6 +67,8 @@ target_compile_features(${CMAKE_PROJECT_NAME} PUBLIC cxx_std_17)
 if (WIN32)
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE ETS2LA_PLUGIN_EXPORTS UNICODE _UNICODE)
     set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+    target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE vendor/truckersmp_sdk/include)
 elseif(UNIX)
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:_DEBUG=1>)
     if (NOT APPLE)

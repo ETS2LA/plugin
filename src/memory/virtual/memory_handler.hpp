@@ -20,26 +20,27 @@ namespace ets2la_plugin
     struct InputMemData;
     struct CameraMemData;
     struct TrafficMemData;
+    struct MpPlayersMemData;
     struct ParkedVehiclesMemData;
     struct SemaphoreMemData;
     struct RouteMemData;
 
-    struct MmapData
-    {
-        const wchar_t* name;
-        void* mmap; // pointer to the data | result of `MapViewOfFile` / `mmap`
-        HANDLE fd; // result of `CreateFileMapping` / `shm_open`
-        HANDLE shm_fd; // wine/proton only, file handle to the /dev/shm/* file we make
-    };
-
     class CMemoryHandler
     {
     private:
+        struct MmapData
+        {
+            const wchar_t* name;
+            void* mmap;    // pointer to the data | result of `MapViewOfFile` / `mmap`
+            HANDLE fd;     // result of `CreateFileMapping` / `shm_open`
+            HANDLE shm_fd; // wine/proton only, file handle to the /dev/shm/* file we make
+        };
 
         MmapData state_mmap_data           = { L"ETS2LAPluginStatus" };
         MmapData input_mmap_data           = { L"ETS2LAPluginInput" };
         MmapData camera_mmap_data          = { L"ETS2LACameraProps" };
         MmapData traffic_mmap_data         = { L"ETS2LATraffic" };
+        MmapData mp_players_mmap_data      = { L"ETS2LAMpPlayers" };
         MmapData parked_vehicles_mmap_data = { L"ETS2LAParkedVehicles" };
         MmapData semaphore_mmap_data       = { L"ETS2LASemaphore" };
         MmapData route_mmap_data           = { L"ETS2LARoute" };
@@ -78,6 +79,7 @@ namespace ets2la_plugin
         void write_state_mem(const PluginStateData data) const;
         void write_camera_mem(const CameraMemData data) const;
         void write_traffic_mem(const TrafficMemData data) const;
+        void write_mp_players_mem( const MpPlayersMemData data ) const;
         void write_parked_vehicles_mem(const ParkedVehiclesMemData data) const;
         void write_semaphore_mem(const SemaphoreMemData data) const;
         void write_route_mem(const RouteMemData data) const;

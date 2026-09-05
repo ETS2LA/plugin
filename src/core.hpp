@@ -4,9 +4,6 @@
 #include "fmt/core.h"
 #include "array"
 
-#include "memory/virtual/memory_handler.hpp"
-#include "processing/traffic.hpp"
-
 namespace ets2la_plugin
 {
 
@@ -61,7 +58,7 @@ namespace ets2la_plugin
         float m42;   // 88
         float m43;   // 92
         float m44;   // 96
-        float truck_pos_x; // 100 
+        float truck_pos_x; // 100
         float truck_pos_y; // 104
         float truck_pos_z; // 108
         float truck_rot_w; // 112
@@ -88,9 +85,7 @@ namespace ets2la_plugin
         float acceleration;    // 44
         short trailer_count;   // 48
         short id;              // 50
-        bool is_tmp;           // 52
-        bool is_trailer;       // 53
-                               // 54
+                               // 52
     };
 
     struct TrafficTrailer
@@ -111,16 +106,32 @@ namespace ets2la_plugin
     struct TrafficVehicleObject
     {
         TrafficVehicle vehicle;      // 0
-        TrafficTrailer trailers[3];  // 54
-                                     // 174
+        TrafficTrailer trailers[3];  // 52
+                                     // 172
     };
 
     struct TrafficMemData
     {
         std::array<TrafficVehicleObject, 40> vehicles; // 0
-                                                       // 6800
+                                                       // 6880
     };
-    static_assert(sizeof(TrafficMemData) == 6960);
+    static_assert(sizeof(TrafficMemData) == 6880);
+
+    struct MpPlayer
+    {
+        TrafficVehicleObject vehicle_data;
+        uint64_t steam_id;   // 172
+        uint16_t latency;    // 180
+        bool has_collision;  // 182
+                             // 183
+    };
+
+    struct MpPlayersMemData
+    {
+        std::array< MpPlayer, 40 > players; // 0
+                                             // 7320
+    };
+    static_assert( sizeof( MpPlayersMemData ) == 7320 );
 
     struct ParkedVehicle
     {
@@ -186,6 +197,10 @@ namespace ets2la_plugin
 
 #pragma pack(pop)
 
+    class CMemoryHandler;
+    class TrafficProcessor;
+    class MpPlayerProcessor;
+
     class CCore
     {
     private:
@@ -195,8 +210,9 @@ namespace ets2la_plugin
         mutable size_t last_route_length_{0};
         mutable double steering_start_time = 0.0;
 
-        CMemoryHandler *memory_manager_;
-        TrafficProcessor *traffic_processor_;
+        class CMemoryHandler *memory_manager_;
+        class TrafficProcessor *traffic_processor_;
+        class MpPlayerProcessor* mp_players_processor_;
 
         mutable bool was_overriding_acceleration = false;
         mutable bool was_overriding_steering = false;
@@ -223,6 +239,7 @@ namespace ets2la_plugin
         void tick() const;
 
         TrafficProcessor *get_traffic_processor() const { return this->traffic_processor_; }
+        MpPlayerProcessor* get_mp_vehicle_processor() const { return this->mp_players_processor_; }
         CMemoryHandler *get_memory_manager() const { return this->memory_manager_; }
 
         template <class... T>

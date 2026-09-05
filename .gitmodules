@@ -1,3 +1,6 @@
 [submodule "vendor/fmt"]
 	path = vendor/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "vendor/truckersmp_sdk"]
+	path = vendor/truckersmp_sdk
+	url = https://github.com/TruckersMP/GameClientSDK.git

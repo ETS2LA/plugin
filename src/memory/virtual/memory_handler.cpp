@@ -80,7 +80,10 @@ namespace ets2la_plugin
         this->initialize_memory_file(state_mmap_data, L"ibb");
         this->initialize_memory_file(input_mmap_data, L"fbdfbd");
         this->initialize_memory_file(camera_mmap_data,L"ffffssfffffffffffffffffffffffffff");
-        this->initialize_memory_file_multiple(traffic_mmap_data, L"ffffffffffffssbbffffffffffffffffffffffffffffff", 40);
+        this->initialize_memory_file_multiple(traffic_mmap_data, L"ffffffffffffssffffffffffffffffffffffffffffff", 40);
+        this->initialize_memory_file_multiple(
+            mp_players_mmap_data, L"ffffffffffffssfffffffffffffffffffffffffffffflsb", 40
+        );
         this->initialize_memory_file_multiple(parked_vehicles_mmap_data, L"ffffffffffsb", 40);
         this->initialize_memory_file_multiple(semaphore_mmap_data, L"fffssffffifii", 40);
         this->initialize_memory_file_multiple(route_mmap_data, L"lff", 6000);
@@ -94,6 +97,7 @@ namespace ets2la_plugin
         this->unmap_file(input_mmap_data, sizeof(InputMemData));
         this->unmap_file(camera_mmap_data, sizeof(CameraMemData));
         this->unmap_file(traffic_mmap_data, sizeof(TrafficMemData));
+        this->unmap_file(mp_players_mmap_data, sizeof(MpPlayersMemData));
         this->unmap_file(parked_vehicles_mmap_data, sizeof(ParkedVehiclesMemData));
         this->unmap_file(semaphore_mmap_data, sizeof(SemaphoreMemData));
         this->unmap_file(route_mmap_data, sizeof(RouteMemData));
@@ -262,6 +266,17 @@ namespace ets2la_plugin
         }
 
         memcpy(static_cast<char*>(traffic_mmap_data.mmap), &data, sizeof(TrafficMemData));
+    }
+
+    void CMemoryHandler::write_mp_players_mem( const MpPlayersMemData data ) const
+    {
+        if ( mp_players_mmap_data.mmap == nullptr )
+        {
+            this->error( "MP players shared mem file not open." );
+            return;
+        }
+
+        memcpy( static_cast< char* >( mp_players_mmap_data.mmap ), &data, sizeof( MpPlayersMemData ) );
     }
 
     void CMemoryHandler::write_parked_vehicles_mem(const ParkedVehiclesMemData data) const

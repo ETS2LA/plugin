@@ -84,6 +84,5 @@ namespace ets2la_plugin
             }
 
             void tick(scs_value_dplacement_t truck_pos);
-            float3_t get_center_coords(const prism::placement_t& placement, const prism::aabox_t& aabox) const;
     };
 }
