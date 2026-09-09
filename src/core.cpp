@@ -1,7 +1,8 @@
 ﻿#include "core.hpp"
 #include "consts.hpp"
 
-#include "memory/memory_utils.hpp"
+#include "prism/input/input_mix.hpp"
+#include "prism/token.hpp"
 #include "sdk/stores.hpp"
 
 #include <common/scssdk_telemetry_truck_common_channels.h>
@@ -210,8 +211,21 @@ namespace ets2la_plugin
                 }
             }
 
-            if (should_override_acceleration && game_actor->game_physics_vehicle != nullptr)
+            if (should_override_acceleration)
             {
+                auto* throttle_inp = prism::input_mix_t::get((prism::token_t)0x188ccfd7c3f); // aforward
+                auto* brake_inp    = prism::input_mix_t::get((prism::token_t)0x3a4e6cb791c7); // abackward
+                if (throttle_inp == nullptr)
+                {
+                    this->error("Could not find throttle input");
+                    return;
+                }
+
+                if (brake_inp == nullptr)
+                {
+                    this->error("Could not find brake input");
+                    return;
+                }
                 if (!was_overriding_acceleration) {
                     was_overriding_acceleration = true;
                     this->info("controlling acceleration.");
@@ -219,13 +233,13 @@ namespace ets2la_plugin
 
                 if (custom_acceleration > 0)
                 {
-                    game_actor->set_throttle_input(custom_acceleration);
-                    game_actor->set_brake_input(0.0f);
+                    throttle_inp->set_value(custom_acceleration);
+                    brake_inp->set_value(0.0f);
                 }
                 else
                 {
-                    game_actor->set_throttle_input(0.0f);
-                    game_actor->set_brake_input(-custom_acceleration);
+                    throttle_inp->set_value(0.0f);
+                    brake_inp->set_value(-custom_acceleration);
                 }
             }
             else
@@ -318,16 +332,6 @@ namespace ets2la_plugin
             return false;
         }
 
-        try
-        {
-            prism::game_actor_u::scan_patterns();
-        }
-        catch( std::exception& e )
-        {
-            this->error("Error when scanning game_actor memory patterns: {}", e.what());
-            return false;
-        }
-
         if ( !prism::game_physics_vehicle_u::scan_patterns() )
         {
             this->error( "Could not find game_physics_vehicle patterns" );
@@ -336,6 +340,16 @@ namespace ets2la_plugin
         if ( !prism::game_trailer_actor_u::scan_patterns() )
         {
             this->error( "Could not find game_trailer_actor patterns" );
+            return false;
+        }
+
+        try
+        {
+            prism::input_mix_t::scan_patterns();
+        }
+        catch( std::exception& e )
+        {
+            this->error("Error when scanning inp_get_mix memory patterns: {}", e.what());
             return false;
         }
 
