@@ -148,6 +148,7 @@ namespace ets2la_plugin
         ) = original_swap_buffers;
         if ( imgui_initialized )
         {
+            imgui_initialized = false;
             ImGui_ImplOpenGL3_Shutdown();
             ImGui::DestroyContext();
         }
