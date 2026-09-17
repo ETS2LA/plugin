@@ -118,14 +118,7 @@ namespace ets2la_plugin::prism
         // class accessory_head_lights_data_u* accessory_head_lights_data; // 0x1BE8 (0x08)
         // char pad_1BF0[ 1528 ];                                          // 0x1BF0 (0x5f8)
 
-        static uint32_t steering_input_offset;
-        static uint32_t throttle_input_offset;
-        static uint32_t brake_input_offset;
-
-        static bool scan_patterns();
         static game_actor_u* get();
-        void set_throttle_input( float value );
-        void set_brake_input( float value );
     };
     // static_assert( sizeof( game_actor_u ) == 0x21E8 );
 

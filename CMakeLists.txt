@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
 
 set(PLUGIN_VERSION_MAJOR 1)
-set(PLUGIN_VERSION_MINOR 60)
+set(PLUGIN_VERSION_MINOR 61)
 set(PLUGIN_VERSION_PATCH 0)
 
 set(GAME_VERSION_MAJOR 1)
-set(GAME_VERSION_MINOR 60)
+set(GAME_VERSION_MINOR 61)
 set(GAME_VERSION_PATCH x)
 
 project(ets2la_plugin VERSION ${PLUGIN_VERSION_MAJOR}.${PLUGIN_VERSION_MINOR}.${PLUGIN_VERSION_PATCH})
@@ -29,6 +29,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./src/prism/vehicles/game_trailer_actor.cpp
     ./src/prism/vehicles/game_physics_vehicle.cpp
     ./src/prism/vehicles/vehicle_shared.cpp
+    ./src/prism/input/input_mix.cpp
 
     ./src/processing/traffic.cpp
 )

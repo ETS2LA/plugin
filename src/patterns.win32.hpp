@@ -4,9 +4,9 @@ namespace ets2la_plugin::patterns
 {
     namespace base_ctrl
     {
-        inline constexpr auto pattern           = "48 8b 15 ? ? ? ? 48 8b ? 48 8b 41 ? 48 8b 92";
+        inline constexpr auto pattern           = "48 8b ? ? ? ? ? 48 8b ? 48 8b ? 48 8b 80";
         inline constexpr auto offset_instance   = 3;
-        inline constexpr auto offset_game_actor = 17;
+        inline constexpr auto offset_game_actor = 16;
 
         namespace nearby_non_ai_vehicles
         {
@@ -51,22 +51,6 @@ namespace ets2la_plugin::patterns
         }
     }
 
-    namespace game_actor
-    {
-        namespace throttle_input
-        {
-            inline constexpr auto pattern = "48 b8 42 7c fd cc 88 01 00 00 48 8d 95 ? ? ? ? 48 89 85 ? ? ? ? 48 8d 8f";
-            inline constexpr auto offset  = 27;
-            inline constexpr auto offset_value_modifier = 0;
-        }
-        namespace brake_input
-        {
-            inline constexpr auto pattern               = "48 b8 C7 91 B7 6C 4E 3A 00 00 48 8d 8f";
-            inline constexpr auto offset                = 13;
-            inline constexpr auto offset_value_modifier = 0;
-        }
-    }
-
     namespace game_physics_vehicle
     {
         namespace trailer
@@ -85,4 +69,13 @@ namespace ets2la_plugin::patterns
         }
     }
 
+    namespace inp_get_mix
+    {
+        inline constexpr auto hash_table_pattern = "48 8b 05 ? ? ? ? 48 8d 55 ? 48 8d 0d ? ? ? ? 48 c7 45 d0 0d";
+        inline constexpr auto hash_table_offset  = 3;
+
+        inline constexpr auto vfunc_value_pattern = "ff 50 ? 48 85 c0 74 ? 48 8b 18 f3 0f 10 8b";
+        inline constexpr auto vfunc_offset        = 2;
+        inline constexpr auto value_offset        = 15;
+    }
 }
