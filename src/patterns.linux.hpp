@@ -73,7 +73,7 @@ namespace ets2la_plugin::patterns
 
     namespace inp_get_mix
     {
-        inline constexpr auto pattern      = "e8 ? ? ? ? f3 0f 10 ? ? ? ? ? f3 0f 10 88";
+        inline constexpr auto pattern      = "e8 ? ? ? ? f3 0f 10 1d ? ? ? ? f3 0f 10 88";
         inline constexpr auto fn_offset    = 1;
         inline constexpr auto value_offset = 17;
     }
