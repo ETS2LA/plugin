@@ -6,6 +6,7 @@ namespace ets2la_plugin::prism
 {
 #pragma pack( push, 1 )
 
+    // replaced in the game by `array_dyn_limited_t<T, TMaxCapacity>` in 1.62
     // Size: W 0x0028, L|A 0x0020 1.60
     template < class T >
     class array_dyn_t : public array_t< T >
