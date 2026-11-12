@@ -114,3 +114,4 @@ Please see the [original repository](https://github.com/dariowouters/ts-extra-ut
 - **dariowouters** - Massive help and the creator of the original plugin.
 - **ziakhan4505** - Has been developing our side of the plugin with the help of dariowouters.
 - **Tumppi066** - Virtual memory implementation.
+- **luuukske** - Our force feedback implementation is based on that luuukske made for MonoCruise. You can find that at https://github.com/luuukske/MonoCruise.

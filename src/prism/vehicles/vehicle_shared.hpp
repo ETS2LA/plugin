@@ -116,8 +116,11 @@ namespace ets2la_plugin::prism
         virtual void get_physics_placement( placement_t* ) const;
 
         static uint32_t steering_angle_offset;
+        static uint32_t* wheel_input_insn_disp_ptr;
+        static uint32_t wheel_input_orig_offset;
 
         static bool scan_patterns();
+        static void set_steering_override( bool active );
         bool set_steering_angle( const float new_steering_angle );
         float get_steering_angle();
     };

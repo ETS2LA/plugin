@@ -6,6 +6,7 @@
 
 #include "memory/virtual/memory_handler.hpp"
 #include "processing/traffic.hpp"
+#include "processing/ffb/ffb_processor.hpp"
 
 namespace ets2la_plugin
 {
@@ -195,8 +196,9 @@ namespace ets2la_plugin
         mutable size_t last_route_length_{0};
         mutable double steering_start_time = 0.0;
 
-        CMemoryHandler *memory_manager_;
-        TrafficProcessor *traffic_processor_;
+        CMemoryHandler *memory_manager_ = nullptr;
+        TrafficProcessor *traffic_processor_ = nullptr;
+        FfbProcessor *ffb_processor_ = nullptr;
 
         mutable bool was_overriding_acceleration = false;
         mutable bool was_overriding_steering = false;
@@ -223,6 +225,7 @@ namespace ets2la_plugin
         void tick() const;
 
         TrafficProcessor *get_traffic_processor() const { return this->traffic_processor_; }
+        FfbProcessor *get_ffb_processor() const { return this->ffb_processor_; }
         CMemoryHandler *get_memory_manager() const { return this->memory_manager_; }
 
         template <class... T>

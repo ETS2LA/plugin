@@ -37,10 +37,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 if (WIN32)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/memory/memory_utils.win32.cpp
+        ./src/processing/ffb/ffb_processor.win32.cpp
     )
 elseif (UNIX AND NOT APPLE)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ./src/memory/memory_utils.linux.cpp
+        ./src/processing/ffb/ffb_processor.linux.cpp
     )
 endif()
 
@@ -66,6 +68,7 @@ target_compile_features(${CMAKE_PROJECT_NAME} PUBLIC cxx_std_17)
 if (WIN32)
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE ETS2LA_PLUGIN_EXPORTS UNICODE _UNICODE)
     set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dinput8 dxguid)
 elseif(UNIX)
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:_DEBUG=1>)
     if (NOT APPLE)

@@ -70,13 +70,18 @@ namespace ets2la_plugin::prism
 #if defined( _WIN32 )
         if ( mixes_hash_table == 0 || vfunc_offset == 0 || value_offset == 0 )
         {
-            return false;
+            return nullptr;
         }
         auto hash_table_find_fn = reinterpret_cast< input_mix_t** ( * )( uint64_t, const input_object_name_t& ) >(
             *reinterpret_cast< uint64_t* >( *reinterpret_cast< uint64_t* >( mixes_hash_table ) + vfunc_offset )
         );
 
-        return *hash_table_find_fn( mixes_hash_table, query_data );
+        auto** found = hash_table_find_fn( mixes_hash_table, query_data );
+        if ( found == nullptr )
+        {
+            return nullptr;
+        }
+        return *found;
 #else
         return inp_get_mix_fn( query_data );
 #endif

@@ -189,13 +189,16 @@ namespace ets2la_plugin
 
         auto* game_actor = prism::game_actor_u::get();
         if (game_actor != nullptr) {
+            bool ffb_available = (this->ffb_processor_ != nullptr && this->ffb_processor_->is_available());
             if (should_override_steering && game_actor->game_physics_vehicle != nullptr)
             {
+                prism::vehicle_shared_u::set_steering_override(true);
                 if(!was_overriding_steering){
                     was_overriding_steering = true;
                     steering_start_time = current_time;
                     this->info("controlling steering.");
                 }
+
                 double t = (current_time - steering_start_time) / 1.5; // 1.5s to fully take control
                 if (t < 1) {
                     t = sin((t * 3.1415) / 2); // easeOutSine
@@ -203,8 +206,23 @@ namespace ets2la_plugin
                     custom_steering_angle = cur * (1 - t) + (custom_steering_angle * t); // lerp
                 }
                 game_actor->game_physics_vehicle->set_steering_angle(custom_steering_angle);
+
+                if (this->ffb_processor_ != nullptr)
+                {
+                    float* steer_ptr = prism::vehicle_shared_u::steering_angle_offset != 0
+                        ? reinterpret_cast<float*>(reinterpret_cast<char*>(game_actor->game_physics_vehicle) + prism::vehicle_shared_u::steering_angle_offset)
+                        : nullptr;
+                    this->ffb_processor_->set_vehicle_steering_ptr(steer_ptr);
+                    this->ffb_processor_->set_steering_target(custom_steering_angle, ffb_available);
+                }
             }
             else{
+                prism::vehicle_shared_u::set_steering_override(false);
+                if (this->ffb_processor_ != nullptr)
+                {
+                    this->ffb_processor_->set_vehicle_steering_ptr(nullptr);
+                    this->ffb_processor_->set_steering_target(0.0f, false);
+                }
                 if(was_overriding_steering){
                     was_overriding_steering = false;
                     this->info("stopped controlling steering.");
@@ -252,6 +270,15 @@ namespace ets2la_plugin
                 }
             }
         }
+        else
+        {
+            prism::vehicle_shared_u::set_steering_override(false);
+            if (this->ffb_processor_ != nullptr)
+            {
+                this->ffb_processor_->set_vehicle_steering_ptr(nullptr);
+                this->ffb_processor_->set_steering_target(0.0f, false);
+            }
+        }
     }
 
     void CCore::update_plugin_state() const
@@ -287,6 +314,10 @@ namespace ets2la_plugin
 
         // Local\ETS2LAPluginInput
         this->override_inputs();
+        if (this->ffb_processor_ != nullptr)
+        {
+            this->ffb_processor_->tick();
+        }
 
         // Local\ETS2LAPluginStatus
         this->update_plugin_state();
@@ -395,6 +426,9 @@ namespace ets2la_plugin
         this->memory_manager_->init();
 
         this->traffic_processor_ = new TrafficProcessor(scs_log_, this->memory_manager_);
+        
+        this->ffb_processor_ = new FfbProcessor(scs_log_);
+        this->ffb_processor_->init(this->init_params_);
 
         if (this->init_params_->register_for_event(SCS_TELEMETRY_EVENT_frame_end, telemetry_tick, nullptr) != SCS_RESULT_ok)
         {
@@ -407,7 +441,12 @@ namespace ets2la_plugin
 
     void CCore::destroy()
     {
-        delete this->memory_manager_;
+        prism::vehicle_shared_u::set_steering_override(false);
+        delete this->ffb_processor_;
+        this->ffb_processor_ = nullptr;
         delete this->traffic_processor_;
+        this->traffic_processor_ = nullptr;
+        delete this->memory_manager_;
+        this->memory_manager_ = nullptr;
     }
 }
