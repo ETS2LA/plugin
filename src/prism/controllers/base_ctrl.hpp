@@ -5,6 +5,8 @@
 
 namespace ets2la_plugin::prism
 {
+    class physics_scene_physx_t;
+
 #pragma pack( push, 1 )
 
     // commented out because maintaining this is too annoying now, we use patterns to find the values we want anyway
@@ -113,12 +115,17 @@ namespace ets2la_plugin::prism
         static uint32_t game_actor_offset;
         static uint32_t some_nearby_kdop_items_offset;
         static uint32_t some_nearby_non_ai_vehicles_offset;
+        static uint32_t physics_scene_1_offset;
+        static uint32_t physics_scene_2_offset;
 
         static bool scan_patterns();
         static base_ctrl_u* get();
 
         array_dyn_t< class kdop_item_t* >* get_nearby_kdop_items() const;
         list_dyn_t< class vehicle_shared_u* >* get_some_nearby_non_ai_vehicles_list() const;
+
+        physics_scene_physx_t* get_physics_scene_1() const;
+        physics_scene_physx_t* get_physics_scene_2() const;
     };
     // static_assert( sizeof( base_ctrl_u ) == 0x3088 );
 

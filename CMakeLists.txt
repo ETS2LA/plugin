@@ -30,8 +30,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ./src/prism/vehicles/game_physics_vehicle.cpp
     ./src/prism/vehicles/vehicle_shared.cpp
     ./src/prism/input/input_mix.cpp
+    ./src/prism/physics/physics_scene_physx.cpp
 
     ./src/processing/traffic.cpp
+    ./src/processing/lidar_processor.cpp
 )
 
 if (WIN32)

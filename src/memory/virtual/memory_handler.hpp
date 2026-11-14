@@ -23,6 +23,7 @@ namespace ets2la_plugin
     struct ParkedVehiclesMemData;
     struct SemaphoreMemData;
     struct RouteMemData;
+    struct LidarMemData;
 
     struct MmapData
     {
@@ -43,6 +44,7 @@ namespace ets2la_plugin
         MmapData parked_vehicles_mmap_data = { L"ETS2LAParkedVehicles" };
         MmapData semaphore_mmap_data       = { L"ETS2LASemaphore" };
         MmapData route_mmap_data           = { L"ETS2LARoute" };
+        MmapData lidar_mmap_data           = { L"ETS2LALidar" };
 
         bool is_running_under_wine = false;
 
@@ -70,6 +72,7 @@ namespace ets2la_plugin
         void destroy();
 
         // initializers
+        void initialize_memory_file_raw(MmapData& mmap_data, size_t size) const;
         void initialize_memory_file(MmapData& mmap_data, const wchar_t* format) const;
         void initialize_memory_file_multiple(MmapData& mmap_data, const wchar_t* format, int count) const;
 
@@ -81,5 +84,6 @@ namespace ets2la_plugin
         void write_parked_vehicles_mem(const ParkedVehiclesMemData data) const;
         void write_semaphore_mem(const SemaphoreMemData data) const;
         void write_route_mem(const RouteMemData data) const;
+        void write_lidar_mem(const LidarMemData& data) const;
     };
 }

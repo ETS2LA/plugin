@@ -84,6 +84,7 @@ namespace ets2la_plugin
         this->initialize_memory_file_multiple(parked_vehicles_mmap_data, L"ffffffffffsb", 40);
         this->initialize_memory_file_multiple(semaphore_mmap_data, L"fffssffffifii", 40);
         this->initialize_memory_file_multiple(route_mmap_data, L"lff", 6000);
+        this->initialize_memory_file_raw(lidar_mmap_data, sizeof(LidarMemData));
 
         return true;
     }
@@ -97,6 +98,7 @@ namespace ets2la_plugin
         this->unmap_file(parked_vehicles_mmap_data, sizeof(ParkedVehiclesMemData));
         this->unmap_file(semaphore_mmap_data, sizeof(SemaphoreMemData));
         this->unmap_file(route_mmap_data, sizeof(RouteMemData));
+        this->unmap_file(lidar_mmap_data, sizeof(LidarMemData));
     }
 
     // This is used to boot up the shared memory file. It creates a file mapping
@@ -107,6 +109,84 @@ namespace ets2la_plugin
     // s - short      (2 bytes)
     // l - long long  (8 bytes)
     // d - double     (8 bytes)
+    void CMemoryHandler::initialize_memory_file_raw(MmapData& mmap_data, size_t size) const
+    {
+        std::wstring wfile_name(mmap_data.name);
+        std::string sfile_name(wfile_name.begin(), wfile_name.end());
+        this->info("Initializing shared mem file '{}' with size {} bytes", sfile_name, size);
+
+#if defined(_WIN32)
+
+        mmap_data.shm_fd = INVALID_HANDLE_VALUE;
+
+        if (this->is_running_under_wine)
+        {
+            const auto shm_path = L"/dev/shm/" + wfile_name;
+            mmap_data.shm_fd = CreateFile(
+                shm_path.c_str(),
+                GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                NULL,
+                OPEN_ALWAYS,
+                FILE_ATTRIBUTE_TEMPORARY,
+                NULL
+            );
+
+            if (mmap_data.shm_fd == INVALID_HANDLE_VALUE)
+            {
+                this->error("Failed to open file '/dev/shm/{}'", sfile_name);
+            }
+        }
+
+        mmap_data.fd = CreateFileMapping(
+            mmap_data.shm_fd,
+            NULL,
+            PAGE_READWRITE,
+            0,
+            static_cast<DWORD>(size),
+            (L"Local\\" + wfile_name).c_str()
+        );
+
+        if (mmap_data.fd == 0) {
+            this->error("Failed to create file mapping for '{}'. Error code: {}", sfile_name, GetLastError());
+            return;
+        }
+
+        mmap_data.mmap = MapViewOfFile(mmap_data.fd, FILE_MAP_ALL_ACCESS, 0, 0, size);
+
+        if (mmap_data.mmap == nullptr) {
+            this->error("Failed to map view of file '{}'. Error code: {}", sfile_name, GetLastError());
+            return;
+        }
+
+#elif defined(__linux__)
+
+        mmap_data.fd =  shm_open(("/" + sfile_name).c_str(), O_CREAT | O_RDWR, 0600);
+
+        if (mmap_data.fd == -1) {
+            this->error("Failed to create file mapping for '{}'. Error code: {}", sfile_name.c_str(), errno);
+            return;
+        }
+
+        if (ftruncate(mmap_data.fd, size) == -1)
+        {
+            this->error("Failed to truncate shm '{}'. Error code: {}", sfile_name.c_str(), errno);
+            return;
+        }
+
+        mmap_data.mmap = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_data.fd, 0);
+
+        if (mmap_data.mmap == MAP_FAILED) {
+            this->error("Failed to map view of file '{}'. Error code: {}", sfile_name.c_str(), errno);
+            return;
+        }
+
+#endif
+
+        memset(mmap_data.mmap, 0, size);
+        this->info("Successfully opened shared mem file '{}' with size {}", sfile_name, size);
+    }
+
     void CMemoryHandler::initialize_memory_file(MmapData& mmap_data, const wchar_t* format) const {
         std::wstring wformat(format);
         std::string sformat(wformat.begin(), wformat.end());
@@ -149,79 +229,8 @@ namespace ets2la_plugin
                 size += sizeof(double);
             }
         }
-#if defined(_WIN32)
 
-        mmap_data.shm_fd = INVALID_HANDLE_VALUE;
-
-        if (this->is_running_under_wine)
-        {
-            // In Linux shared-memory files use a `tmpfs` filesystem mounted at `/dev/shm`
-            // But when we use the Windows functions in wine, they obviously don't do that.
-            // So we manually create a file directly in `/dev/shm` and use that file handle in `CreateFileMapping`.
-            const auto shm_path = L"/dev/shm/" + wfile_name;
-            mmap_data.shm_fd = CreateFile(
-                shm_path.c_str(),
-                GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                NULL,
-                OPEN_ALWAYS,
-                FILE_ATTRIBUTE_TEMPORARY,
-                NULL
-            );
-
-            if (mmap_data.shm_fd == INVALID_HANDLE_VALUE)
-            {
-                this->error("Failed to open file '/dev/shm/{}'", sfile_name);
-            }
-        }
-
-        mmap_data.fd = CreateFileMapping(
-            mmap_data.shm_fd,  // handle
-            NULL,              // default security
-            PAGE_READWRITE,    // read/write access
-            0,                 // maximum object size (high-order DWORD)
-            size,              // maximum object size (low-order DWORD)
-            (L"Local\\" + wfile_name).c_str() // name of mapping object
-        );
-
-        if (mmap_data.fd == 0) {
-            this->error("Failed to create file mapping for '{}'. Error code: {}", sfile_name, GetLastError());
-            return;
-        }
-
-        mmap_data.mmap = MapViewOfFile(mmap_data.fd, FILE_MAP_ALL_ACCESS, 0, 0, size);
-
-        if (mmap_data.mmap == nullptr) {
-            this->error("Failed to map view of file '{}'. Error code: {}", sfile_name, GetLastError());
-            return;
-        }
-
-#elif defined(__linux__)
-
-        mmap_data.fd =  shm_open(("/" + sfile_name).c_str(), O_CREAT | O_RDWR, 0600);
-
-        if (mmap_data.fd == -1) {
-            this->error("Failed to create file mapping for '{}'. Error code: {}", sfile_name.c_str(), errno);
-            return;
-        }
-
-        if (ftruncate(mmap_data.fd, size) == -1)
-        {
-            this->error("Failed to truncate shm '{}'. Error code: {}", sfile_name.c_str(), errno);
-            return;
-        }
-
-        mmap_data.mmap = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_data.fd, 0);
-
-        if (mmap_data.mmap == MAP_FAILED) {
-            this->error("Failed to map view of file '{}'. Error code: {}", sfile_name.c_str(), errno);
-            return;
-        }
-
-#endif
-
-        memset(mmap_data.mmap, 0, size);
-        this->info("Successfully opened shared mem file '{}' with size {}", sfile_name, size);
+        this->initialize_memory_file_raw(mmap_data, size);
     }
 
     InputMemData CMemoryHandler::read_input_mem() const {
@@ -295,6 +304,28 @@ namespace ets2la_plugin
         }
 
         memcpy(static_cast<char*>(route_mmap_data.mmap), &data, sizeof(RouteMemData));
+    }
+
+    void CMemoryHandler::write_lidar_mem(const LidarMemData& data) const
+    {
+        if (lidar_mmap_data.mmap == nullptr)
+        {
+            return;
+        }
+
+        char* const dst = static_cast<char*>(lidar_mmap_data.mmap);
+        constexpr size_t headerSize = 52;
+        const size_t validPoints = (std::min)(static_cast<size_t>(data.point_count), MAX_LIDAR_POINTS);
+        const size_t pointsBytes = validPoints * sizeof(LidarPoint);
+
+        // Copy points array before updating header to prevent reader from seeing torn/partial point cloud
+        if (pointsBytes > 0)
+        {
+            memcpy(dst + headerSize, data.points, pointsBytes);
+        }
+
+        // Write header with point_count and timestamp atomically to complete frame
+        memcpy(dst, &data, headerSize);
     }
 
     void CMemoryHandler::initialize_memory_file_multiple(MmapData& mmap_data, const wchar_t* format, int count) const {

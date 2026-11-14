@@ -19,6 +19,16 @@ namespace ets2la_plugin::patterns
             inline constexpr auto pattern = "4c 8d 81 ? ? ? ? 0f 29 ? ? 48 8d 91";
             inline constexpr auto offset  = 3;
         }
+
+        namespace physics_scenes
+        {
+            inline constexpr auto pattern_world_ctrl = "48 8d be ? ? ? ? 48 8b d7 49 8d 9d";
+            inline constexpr auto offset_world_ctrl  = 3;
+
+            inline constexpr auto pattern_scenes     = "48 89 ? ? ? ? ? 48 8b ? ? ? ? ? e8 ? ? ? ? 48 8b ? ? ? ? ? 48 8b ? 48 85 ? 74";
+            inline constexpr auto offset_scene_1     = 3;
+            inline constexpr auto offset_scene_2     = 22;
+        }
     }
 
     namespace game_ctrl
@@ -77,5 +87,21 @@ namespace ets2la_plugin::patterns
         inline constexpr auto vfunc_value_pattern = "ff 50 ? 48 85 c0 74 ? 48 8b 18 f3 0f 10 8b";
         inline constexpr auto vfunc_offset        = 2;
         inline constexpr auto value_offset        = 15;
+    }
+
+    namespace physics_scene_physx
+    {
+        namespace px_scene
+        {
+            inline constexpr auto pattern = "48 8b 89 ? ? ? ? 48 8b da 48 8d 54 24 ? 48 8b 01 ff 90 18 02 00 00";
+            inline constexpr auto offset  = 3;
+        }
+
+        namespace raycast
+        {
+            inline constexpr auto pattern =
+                "b8 07 04 00 00 4c 8d ? ? 66 89 ? ? 4c 89 44 24 ? 4c 8d ? ? 48 8b 01 48 89 54 24 ? 48 8d ? ? ff 90";
+            inline constexpr auto offset  = 36;
+        }
     }
 }

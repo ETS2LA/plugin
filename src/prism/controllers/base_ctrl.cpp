@@ -3,6 +3,7 @@
 #include "core.hpp"
 #include "memory/memory_utils.hpp"
 #include "patterns.hpp"
+#include "prism/physics/physics_scene_physx.hpp"
 #include <stdexcept>
 
 namespace ets2la_plugin::prism
@@ -12,6 +13,8 @@ namespace ets2la_plugin::prism
     uint32_t base_ctrl_u::game_actor_offset                  = 0;
     uint32_t base_ctrl_u::some_nearby_kdop_items_offset      = 0;
     uint32_t base_ctrl_u::some_nearby_non_ai_vehicles_offset = 0;
+    uint32_t base_ctrl_u::physics_scene_1_offset             = 0;
+    uint32_t base_ctrl_u::physics_scene_2_offset             = 0;
 
     bool base_ctrl_u::scan_patterns()
     {
@@ -62,6 +65,31 @@ namespace ets2la_plugin::prism
             base_ctrl_u::some_nearby_non_ai_vehicles_offset
         );
 
+        const auto scenes_addr = memory::get_address_for_pattern(
+            patterns::base_ctrl::physics_scenes::pattern_scenes
+        );
+
+        if ( scenes_addr != 0 )
+        {
+            base_ctrl_u::physics_scene_1_offset = *reinterpret_cast< uint32_t* >(
+                scenes_addr + patterns::base_ctrl::physics_scenes::offset_scene_1
+            );
+            base_ctrl_u::physics_scene_2_offset = *reinterpret_cast< uint32_t* >(
+                scenes_addr + patterns::base_ctrl::physics_scenes::offset_scene_2
+            );
+            CCore::g_instance->debug(
+                "Found base_ctrl_u physics scenes: scene_1={:x}, scene_2={:x}",
+                base_ctrl_u::physics_scene_1_offset,
+                base_ctrl_u::physics_scene_2_offset
+            );
+        }
+        else
+        {
+            CCore::g_instance->warning( "Failed to find physics_scenes pattern, using fallback" );
+            base_ctrl_u::physics_scene_1_offset = 0x2da0;
+            base_ctrl_u::physics_scene_2_offset = 0x2da8;
+        }
+
         return true;
     }
 
@@ -97,5 +125,27 @@ namespace ets2la_plugin::prism
         }
 
         return nullptr;
+    }
+
+    physics_scene_physx_t* base_ctrl_u::get_physics_scene_1() const
+    {
+        if ( !this )
+        {
+            return nullptr;
+        }
+
+        uint32_t sceneOff = base_ctrl_u::physics_scene_1_offset ? base_ctrl_u::physics_scene_1_offset : 0x2da0;
+        return *reinterpret_cast< physics_scene_physx_t** >( reinterpret_cast< uint64_t >( this ) + sceneOff );
+    }
+
+    physics_scene_physx_t* base_ctrl_u::get_physics_scene_2() const
+    {
+        if ( !this )
+        {
+            return nullptr;
+        }
+
+        uint32_t sceneOff = base_ctrl_u::physics_scene_2_offset ? base_ctrl_u::physics_scene_2_offset : 0x2da8;
+        return *reinterpret_cast< physics_scene_physx_t** >( reinterpret_cast< uint64_t >( this ) + sceneOff );
     }
 }
