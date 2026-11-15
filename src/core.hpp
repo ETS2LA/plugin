@@ -186,6 +186,19 @@ namespace ets2la_plugin
     };
     static_assert(sizeof(RouteMemData) == 96'000);
 
+    enum class LidarHitClass : uint8_t
+    {
+        Unknown           = 0,
+        RoadSurface       = 1,
+        GroundTerrain     = 2,
+        BarrierGuardrail  = 3,
+        BuildingStructure = 4,
+        VegetationTree    = 5,
+        TrafficTruck      = 6,
+        TrafficCar        = 7,
+        DynamicProp       = 8
+    };
+
     struct LidarPoint
     {
         float x;
@@ -193,7 +206,9 @@ namespace ets2la_plugin
         float z;
         float distance;
         float intensity;
-        uint32_t channel;
+        uint16_t channel;
+        uint8_t is_truck;
+        uint8_t hit_type;
     };
     static_assert(sizeof(LidarPoint) == 24);
 

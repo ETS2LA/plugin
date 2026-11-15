@@ -356,7 +356,9 @@ namespace ets2la_plugin
                     const prism::physx::PxVec3 pxDir( worldDir.x, worldDir.y, worldDir.z );
 
                     bool hasHit = false;
+                    bool hitFromDynamicScene = false;
                     float closestDist = rayLength;
+                    prism::physx::PxVec3 bestNormal( 0.0f, 1.0f, 0.0f );
 
                     if ( pxScene1 != nullptr )
                     {
@@ -368,6 +370,8 @@ namespace ets2la_plugin
                             {
                                 hasHit = true;
                                 closestDist = hit1.block.distance;
+                                bestNormal = hit1.block.normal;
+                                hitFromDynamicScene = false;
                             }
                         }
                     }
@@ -380,8 +384,24 @@ namespace ets2la_plugin
                         {
                             if ( hit2.block.distance > 0.0f && hit2.block.distance < closestDist )
                             {
-                                hasHit = true;
-                                closestDist = hit2.block.distance;
+                                const float candDist = hit2.block.distance + rayMinRange;
+                                const float3_t candLocal = float3_t{
+                                    localDir.x * candDist + _mountOffset.x,
+                                    localDir.y * candDist + _mountOffset.y,
+                                    localDir.z * candDist + _mountOffset.z
+                                };
+
+                                const bool isEgo = std::abs( candLocal.x ) < 1.45f &&
+                                                   candLocal.y >= -0.6f && candLocal.y <= 4.3f &&
+                                                   candLocal.z >= -3.5f && candLocal.z <= rearClearDist;
+
+                                if ( !isEgo )
+                                {
+                                    hasHit = true;
+                                    closestDist = hit2.block.distance;
+                                    bestNormal = hit2.block.normal;
+                                    hitFromDynamicScene = true;
+                                }
                             }
                         }
                     }
@@ -396,16 +416,96 @@ namespace ets2la_plugin
                             localDir.z * hitDistance + _mountOffset.z
                         };
 
-                        // Reject self-hits on the ego truck cabin / body / trailer:
-                        if ( std::abs( localHit.x ) < 1.35f && localHit.y >= 0.0f && localHit.y <= 4.2f &&
-                             localHit.z >= -2.9f && localHit.z <= rearClearDist )
+                        const float heightAboveGround = localHit.y;
+                        uint8_t isTruck = 0;
+                        LidarHitClass hitClass = LidarHitClass::Unknown;
+
+                        if ( hitFromDynamicScene )
                         {
-                            continue;
+                            if ( heightAboveGround < 0.70f )
+                            {
+                                hitClass = LidarHitClass::DynamicProp;
+                                isTruck = 0;
+                            }
+                            else if ( heightAboveGround >= 1.85f )
+                            {
+                                hitClass = LidarHitClass::TrafficTruck;
+                                isTruck = 1;
+                            }
+                            else
+                            {
+                                hitClass = LidarHitClass::TrafficCar;
+                                isTruck = 0;
+                            }
+                        }
+                        else
+                        {
+                            isTruck = 0;
+                            const float normalUp = bestNormal.y;
+
+                            if ( normalUp > 0.60f )
+                            {
+                                const float maxRoadDelta = 0.60f + 0.08f * hitDistance;
+                                const bool isNearRoadElevation = std::abs( localHit.y ) <= maxRoadDelta;
+                                const bool isRoadCorridor = std::abs( localHit.x ) <= 14.0f;
+
+                                if ( isNearRoadElevation && ( isRoadCorridor || normalUp > 0.92f ) )
+                                {
+                                    hitClass = LidarHitClass::RoadSurface;
+                                }
+                                else
+                                {
+                                    hitClass = LidarHitClass::GroundTerrain;
+                                }
+                            }
+                            else
+                            {
+                                if ( heightAboveGround <= 1.8f && std::abs( localHit.x ) <= 20.0f )
+                                {
+                                    hitClass = LidarHitClass::BarrierGuardrail;
+                                }
+                                else
+                                {
+                                    hitClass = LidarHitClass::BuildingStructure;
+                                }
+                            }
                         }
 
-                        const float intensity = ( hitDistance < _maxRange )
+                        float baseReflectivity = 0.50f;
+                        switch ( hitClass )
+                        {
+                            case LidarHitClass::TrafficTruck:
+                            case LidarHitClass::TrafficCar:
+                                baseReflectivity = 0.85f;
+                                break;
+                            case LidarHitClass::DynamicProp:
+                                baseReflectivity = 0.95f;
+                                break;
+                            case LidarHitClass::RoadSurface:
+                                baseReflectivity = 0.45f;
+                                break;
+                            case LidarHitClass::BarrierGuardrail:
+                                baseReflectivity = 0.75f;
+                                break;
+                            case LidarHitClass::BuildingStructure:
+                                baseReflectivity = 0.60f;
+                                break;
+                            case LidarHitClass::GroundTerrain:
+                                baseReflectivity = 0.25f;
+                                break;
+                            default:
+                                baseReflectivity = 0.50f;
+                                break;
+                        }
+
+                        const float distFalloff = ( hitDistance < _maxRange )
                             ? ( 1.0f - ( hitDistance / _maxRange ) )
                             : 0.0f;
+                        const float intensity = std::clamp(
+                            baseReflectivity * ( 0.4f + 0.6f * distFalloff ),
+                            0.05f,
+                            1.0f
+                        );
 
                         hits.push_back( LidarPoint{
                             localHit.x,
@@ -413,7 +513,9 @@ namespace ets2la_plugin
                             localHit.z,
                             hitDistance,
                             intensity,
-                            _rayChannels[ i ]
+                            static_cast< uint16_t >( _rayChannels[ i ] ),
+                            isTruck,
+                            static_cast< uint8_t >( hitClass )
                         } );
                     }
                 }
