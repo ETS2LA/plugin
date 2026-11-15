@@ -11,10 +11,17 @@
 
 namespace ets2la_plugin::prism
 {
-    uint32_t physics_scene_physx_t::px_scene_offset         = 0x0178;
-    uint32_t physics_scene_physx_t::raycast_vtable_offset   = 0x02F0;
-    uint32_t physics_scene_physx_t::lock_read_vtable_offset = 0x0348;
+#ifdef _WIN32
+    uint32_t physics_scene_physx_t::px_scene_offset           = 0x0178;
+    uint32_t physics_scene_physx_t::raycast_vtable_offset     = 0x02F0;
+    uint32_t physics_scene_physx_t::lock_read_vtable_offset   = 0x0348;
     uint32_t physics_scene_physx_t::unlock_read_vtable_offset = 0x0350;
+#else
+    uint32_t physics_scene_physx_t::px_scene_offset           = 0x0160;
+    uint32_t physics_scene_physx_t::raycast_vtable_offset     = 0x02F8;
+    uint32_t physics_scene_physx_t::lock_read_vtable_offset   = 0x0350;
+    uint32_t physics_scene_physx_t::unlock_read_vtable_offset = 0x0358;
+#endif
 
     bool physics_scene_physx_t::scan_patterns()
     {

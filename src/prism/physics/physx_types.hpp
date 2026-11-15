@@ -289,6 +289,7 @@ namespace ets2la_plugin::prism::physx
             uint32_t vtableOffset
         ) const
         {
+#ifdef _WIN32
             using RaycastFn = bool( __fastcall* )(
                 const PxScene*,
                 const PxVec3&,
@@ -300,6 +301,19 @@ namespace ets2la_plugin::prism::physx
                 PxQueryFilterCallback*,
                 const void*
             );
+#else
+            using RaycastFn = bool( * )(
+                const PxScene*,
+                const PxVec3&,
+                const PxVec3&,
+                float,
+                PxRaycastCallback&,
+                const PxHitFlags&,
+                const PxQueryFilterData&,
+                PxQueryFilterCallback*,
+                const void*
+            );
+#endif
 
             auto* const vtable = *reinterpret_cast< const uintptr_t* const* >( this );
             if ( vtable == nullptr )
@@ -321,7 +335,11 @@ namespace ets2la_plugin::prism::physx
 
         bool lockRead( const char* file, uint32_t line, uint32_t vtableOffset )
         {
+#ifdef _WIN32
             using LockReadFn = bool( __fastcall* )( PxScene*, const char*, uint32_t );
+#else
+            using LockReadFn = bool( * )( PxScene*, const char*, uint32_t );
+#endif
 
             auto* const vtable = *reinterpret_cast< const uintptr_t* const* >( this );
             if ( vtable == nullptr )
@@ -343,7 +361,11 @@ namespace ets2la_plugin::prism::physx
 
         void unlockRead( uint32_t vtableOffset )
         {
+#ifdef _WIN32
             using UnlockReadFn = void( __fastcall* )( PxScene* );
+#else
+            using UnlockReadFn = void( * )( PxScene* );
+#endif
 
             auto* const vtable = *reinterpret_cast< const uintptr_t* const* >( this );
             if ( vtable == nullptr )

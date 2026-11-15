@@ -86,8 +86,13 @@ namespace ets2la_plugin::prism
         else
         {
             CCore::g_instance->warning( "Failed to find physics_scenes pattern, using fallback" );
+#ifdef _WIN32
             base_ctrl_u::physics_scene_1_offset = 0x2da0;
             base_ctrl_u::physics_scene_2_offset = 0x2da8;
+#else
+            base_ctrl_u::physics_scene_1_offset = 0x23e8;
+            base_ctrl_u::physics_scene_2_offset = 0x23f0;
+#endif
         }
 
         return true;
@@ -134,7 +139,12 @@ namespace ets2la_plugin::prism
             return nullptr;
         }
 
-        uint32_t sceneOff = base_ctrl_u::physics_scene_1_offset ? base_ctrl_u::physics_scene_1_offset : 0x2da0;
+#ifdef _WIN32
+        constexpr uint32_t defaultSceneOffset = 0x2da0;
+#else
+        constexpr uint32_t defaultSceneOffset = 0x23e8;
+#endif
+        uint32_t sceneOff = base_ctrl_u::physics_scene_1_offset ? base_ctrl_u::physics_scene_1_offset : defaultSceneOffset;
         return *reinterpret_cast< physics_scene_physx_t** >( reinterpret_cast< uint64_t >( this ) + sceneOff );
     }
 
@@ -145,7 +155,12 @@ namespace ets2la_plugin::prism
             return nullptr;
         }
 
-        uint32_t sceneOff = base_ctrl_u::physics_scene_2_offset ? base_ctrl_u::physics_scene_2_offset : 0x2da8;
+#ifdef _WIN32
+        constexpr uint32_t defaultSceneOffset = 0x2da8;
+#else
+        constexpr uint32_t defaultSceneOffset = 0x23f0;
+#endif
+        uint32_t sceneOff = base_ctrl_u::physics_scene_2_offset ? base_ctrl_u::physics_scene_2_offset : defaultSceneOffset;
         return *reinterpret_cast< physics_scene_physx_t** >( reinterpret_cast< uint64_t >( this ) + sceneOff );
     }
 }

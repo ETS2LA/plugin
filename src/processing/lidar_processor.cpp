@@ -115,7 +115,7 @@ namespace ets2la_plugin
 
         GenerateUnitBeams();
         LogInfo(
-            "Ultra High-Res 128-Channel initialized with {} rays ({} rings x {} beams, range: {}m) across {} worker threads",
+            "Lidar initiated with {} rays ({} rings x {} beams, range: {}m) across {} worker threads",
             _unitRays.size(),
             _verticalRings,
             _horizontalBeams,
