@@ -61,6 +61,7 @@ namespace ets2la_plugin
         this->tmp_vehicles.clear();
         this->tmp_trailers.clear();
         this->semaphore_objects.clear();
+        this->_activeDynamicBoxes.clear();
     }
 
     void TrafficProcessor::process_traffic_object(const prism::traffic_object_t* traffic_object, const uint32_t id)
@@ -303,6 +304,8 @@ namespace ets2la_plugin
 
         std::array<TrafficVehicleObject, 40> traffic_vehicle_objects = {};
         int count = 0;
+        this->_activeDynamicBoxes.clear();
+        this->_activeDynamicBoxes.reserve(traffic_objects.size() * 2);
 
         for (const auto& traffic_object : traffic_objects)
         {
@@ -316,6 +319,15 @@ namespace ets2la_plugin
             {
                 const auto* traffic_actor = traffic_object.traffic_actor;
                 const auto position = get_center_coords(traffic_actor->placement, traffic_actor->aabox);
+                const float halfW = abs(traffic_actor->aabox.start.x - traffic_actor->aabox.end.x) * 0.5f;
+                const float halfH = abs(traffic_actor->aabox.start.y - traffic_actor->aabox.end.y) * 0.5f;
+                const float halfL = abs(traffic_actor->aabox.start.z - traffic_actor->aabox.end.z) * 0.5f;
+                this->_activeDynamicBoxes.push_back(DynamicBox{
+                    position,
+                    float3_t{ halfW, halfH, halfL },
+                    traffic_actor->placement.rot
+                });
+
                 vehicle_object.vehicle = TrafficVehicle{
                     position.x,
                     position.y,
@@ -324,9 +336,9 @@ namespace ets2la_plugin
                     traffic_actor->placement.rot.x,
                     traffic_actor->placement.rot.y,
                     traffic_actor->placement.rot.z,
-                    abs(traffic_actor->aabox.start.x - traffic_actor->aabox.end.x), // width
-                    abs(traffic_actor->aabox.start.y - traffic_actor->aabox.end.y), // height
-                    abs(traffic_actor->aabox.start.z - traffic_actor->aabox.end.z), // length
+                    halfW * 2.0f, // width
+                    halfH * 2.0f, // height
+                    halfL * 2.0f, // length
                     traffic_object.speed,          // speed
                     traffic_object.acceleration,   // acceleration
                     0,                                        // trailer_count
@@ -340,6 +352,15 @@ namespace ets2la_plugin
                 while (trailer != nullptr && i < 3)
                 {
                     const auto trailer_position = get_center_coords(trailer->placement, trailer->aabox);
+                    const float tHalfW = abs(trailer->aabox.start.x - trailer->aabox.end.x) * 0.5f;
+                    const float tHalfH = abs(trailer->aabox.start.y - trailer->aabox.end.y) * 0.5f;
+                    const float tHalfL = abs(trailer->aabox.start.z - trailer->aabox.end.z) * 0.5f;
+                    this->_activeDynamicBoxes.push_back(DynamicBox{
+                        trailer_position,
+                        float3_t{ tHalfW, tHalfH, tHalfL },
+                        trailer->placement.rot
+                    });
+
                     vehicle_object.trailers[i] = TrafficTrailer{
                         trailer_position.x,
                         trailer_position.y,
@@ -348,9 +369,9 @@ namespace ets2la_plugin
                         trailer->placement.rot.x,
                         trailer->placement.rot.y,
                         trailer->placement.rot.z,
-                        abs(trailer->aabox.start.x - trailer->aabox.end.x), // width
-                        abs(trailer->aabox.start.y - trailer->aabox.end.y), // height
-                        abs(trailer->aabox.start.z - trailer->aabox.end.z), // length
+                        tHalfW * 2.0f, // width
+                        tHalfH * 2.0f, // height
+                        tHalfL * 2.0f  // length
                     };
 
                     trailer = trailer->slave;
@@ -365,6 +386,15 @@ namespace ets2la_plugin
                 prism::placement_t truck_placement;
                 tmp_truck->get_physics_placement(&truck_placement);
                 const auto truck_position = get_center_coords(truck_placement, tmp_truck->aabox);
+                const float halfW = abs(tmp_truck->aabox.start.x - tmp_truck->aabox.end.x) * 0.5f;
+                const float halfH = abs(tmp_truck->aabox.start.y - tmp_truck->aabox.end.y) * 0.5f;
+                const float halfL = abs(tmp_truck->aabox.start.z - tmp_truck->aabox.end.z) * 0.5f;
+                this->_activeDynamicBoxes.push_back(DynamicBox{
+                    truck_position,
+                    float3_t{ halfW, halfH, halfL },
+                    truck_placement.rot
+                });
+
                 vehicle_object.vehicle = TrafficVehicle{
                     truck_position.x,
                     truck_position.y,
@@ -373,9 +403,9 @@ namespace ets2la_plugin
                     truck_placement.rot.x,
                     truck_placement.rot.y,
                     truck_placement.rot.z,
-                    abs(tmp_truck->aabox.start.x - tmp_truck->aabox.end.x), // width
-                    abs(tmp_truck->aabox.start.y - tmp_truck->aabox.end.y), // height
-                    abs(tmp_truck->aabox.start.z - tmp_truck->aabox.end.z), // length
+                    halfW * 2.0f, // width
+                    halfH * 2.0f, // height
+                    halfL * 2.0f, // length
                     0,                               // speed (null)
                     0,                               // acceleration (null)
                     0,                               // trailer_count
@@ -393,6 +423,15 @@ namespace ets2la_plugin
                 prism::placement_t trailer_placement;
                 tmp_trailer->get_physics_placement(&trailer_placement);
                 const auto trailer_position = get_center_coords(trailer_placement, tmp_trailer->aabox);
+                const float halfW = abs(tmp_trailer->aabox.start.x - tmp_trailer->aabox.end.x) * 0.5f;
+                const float halfH = abs(tmp_trailer->aabox.start.y - tmp_trailer->aabox.end.y) * 0.5f;
+                const float halfL = abs(tmp_trailer->aabox.start.z - tmp_trailer->aabox.end.z) * 0.5f;
+                this->_activeDynamicBoxes.push_back(DynamicBox{
+                    trailer_position,
+                    float3_t{ halfW, halfH, halfL },
+                    trailer_placement.rot
+                });
+
                 vehicle_object.vehicle = TrafficVehicle{
                     trailer_position.x,
                     trailer_position.y,
@@ -401,9 +440,9 @@ namespace ets2la_plugin
                     trailer_placement.rot.x,
                     trailer_placement.rot.y,
                     trailer_placement.rot.z,
-                    abs(tmp_trailer->aabox.start.x - tmp_trailer->aabox.end.x), // width
-                    abs(tmp_trailer->aabox.start.y - tmp_trailer->aabox.end.y), // height
-                    abs(tmp_trailer->aabox.start.z - tmp_trailer->aabox.end.z), // length
+                    halfW * 2.0f, // width
+                    halfH * 2.0f, // height
+                    halfL * 2.0f, // length
                     0,                               // speed (null)
                     0,                               // acceleration (null)
                     0,                               // trailer_count
@@ -418,6 +457,15 @@ namespace ets2la_plugin
                     prism::placement_t trailer_placement;
                     trailer->get_physics_placement(&trailer_placement);
                     const auto trailer_position = get_center_coords(trailer_placement, trailer->aabox);
+                    const float tHalfW = abs(trailer->aabox.start.x - trailer->aabox.end.x) * 0.5f;
+                    const float tHalfH = abs(trailer->aabox.start.y - trailer->aabox.end.y) * 0.5f;
+                    const float tHalfL = abs(trailer->aabox.start.z - trailer->aabox.end.z) * 0.5f;
+                    this->_activeDynamicBoxes.push_back(DynamicBox{
+                        trailer_position,
+                        float3_t{ tHalfW, tHalfH, tHalfL },
+                        trailer_placement.rot
+                    });
+
                     vehicle_object.trailers[i-1] = TrafficTrailer{
                         trailer_position.x,
                         trailer_position.y,
@@ -426,9 +474,9 @@ namespace ets2la_plugin
                         trailer_placement.rot.x,
                         trailer_placement.rot.y,
                         trailer_placement.rot.z,
-                        abs(trailer->aabox.start.x - trailer->aabox.end.x), // width
-                        abs(trailer->aabox.start.y - trailer->aabox.end.y), // height
-                        abs(trailer->aabox.start.z - trailer->aabox.end.z)  // length
+                        tHalfW * 2.0f, // width
+                        tHalfH * 2.0f, // height
+                        tHalfL * 2.0f  // length
                     };
                 }
             }

@@ -9,9 +9,19 @@
 
 namespace ets2la_plugin
 {
+    class TrafficProcessor;
+
     class LidarProcessor
     {
     private:
+        struct PrecomputedDynamicBox
+        {
+            float3_t center;
+            float3_t halfExtents;
+            quat_t invRot;
+            float radiusSq;
+        };
+
         scs_log_t _scsLog;
         CMemoryHandler* _memoryHandler;
 
@@ -28,6 +38,7 @@ namespace ets2la_plugin
         std::unique_ptr< ThreadPool > _threadPool;
         std::unique_ptr< LidarMemData > _lidarBuffer;
         std::vector< std::vector< LidarPoint > > _threadLocalHits;
+        std::vector< PrecomputedDynamicBox > _activeDynamicBoxes;
 
         quat_t _smoothedRot;
         bool _hasSmoothedRot;
@@ -76,6 +87,6 @@ namespace ets2la_plugin
         LidarProcessor( scs_log_t scsLog, CMemoryHandler* memoryHandler );
         ~LidarProcessor();
 
-        void Tick( const scs_value_dplacement_t& truckPos );
+        void Tick( const scs_value_dplacement_t& truckPos, const TrafficProcessor* trafficProcessor = nullptr );
     };
 }

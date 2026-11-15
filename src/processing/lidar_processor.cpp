@@ -1,4 +1,5 @@
 #include "lidar_processor.hpp"
+#include "traffic.hpp"
 
 #include "prism/controllers/base_ctrl.hpp"
 #include "prism/game_actor.hpp"
@@ -253,7 +254,7 @@ namespace ets2la_plugin
         }
     }
 
-    void LidarProcessor::Tick( const scs_value_dplacement_t& truckPos )
+    void LidarProcessor::Tick( const scs_value_dplacement_t& truckPos, const TrafficProcessor* trafficProcessor )
     {
         auto* const baseCtrl = prism::base_ctrl_u::get();
         if ( baseCtrl == nullptr )
@@ -298,6 +299,42 @@ namespace ets2la_plugin
         const prism::physx::PxVec3 sensorPxPos1 = scene1 ? scene1->to_physx_pos( sensorPlacement ) : prism::physx::PxVec3( 0, 0, 0 );
         const prism::physx::PxVec3 sensorPxPos2 = scene2 ? scene2->to_physx_pos( sensorPlacement ) : prism::physx::PxVec3( 0, 0, 0 );
         const float3_t globalTruckPos = truckPlacement.to_global_position();
+        const float3_t globalSensorPos = sensorPlacement.to_global_position();
+
+        _activeDynamicBoxes.clear();
+        if ( trafficProcessor != nullptr )
+        {
+            const auto& rawBoxes = trafficProcessor->GetActiveDynamicBoxes();
+            _activeDynamicBoxes.reserve( rawBoxes.size() );
+
+            constexpr float margin = 0.25f;
+            const float maxDistSq = ( _maxRange + 15.0f ) * ( _maxRange + 15.0f );
+
+            for ( const auto& rawBox : rawBoxes )
+            {
+                const float dx = rawBox.center.x - globalTruckPos.x;
+                const float dy = rawBox.center.y - globalTruckPos.y;
+                const float dz = rawBox.center.z - globalTruckPos.z;
+                const float distToTruckSq = dx * dx + dy * dy + dz * dz;
+
+                if ( distToTruckSq > maxDistSq )
+                {
+                    continue;
+                }
+
+                const float hx = rawBox.halfExtents.x + margin;
+                const float hy = rawBox.halfExtents.y + margin;
+                const float hz = rawBox.halfExtents.z + margin;
+                const float radSq = hx * hx + hy * hy + hz * hz;
+
+                _activeDynamicBoxes.push_back( PrecomputedDynamicBox{
+                    rawBox.center,
+                    float3_t{ hx, hy, hz },
+                    quat_t{ rawBox.rot.w, -rawBox.rot.x, -rawBox.rot.y, -rawBox.rot.z },
+                    radSq
+                } );
+            }
+        }
 
         const auto now = std::chrono::duration_cast< std::chrono::milliseconds >(
             std::chrono::system_clock::now().time_since_epoch()
@@ -341,7 +378,7 @@ namespace ets2la_plugin
                 continue;
             }
 
-            _threadPool->Enqueue( [ this, w, startIdx, endIdx, sensorPxPos1, sensorPxPos2, rayRot, pxScene1, pxScene2, filterData, hitFlags, rearClearDist ]()
+            _threadPool->Enqueue( [ this, w, startIdx, endIdx, sensorPxPos1, sensorPxPos2, rayRot, pxScene1, pxScene2, filterData, hitFlags, rearClearDist, globalSensorPos ]()
             {
                 auto& hits = _threadLocalHits[ w ];
                 hits.clear();
@@ -358,7 +395,6 @@ namespace ets2la_plugin
                     bool hasHit = false;
                     bool hitFromDynamicScene = false;
                     float closestDist = rayLength;
-                    prism::physx::PxVec3 bestNormal( 0.0f, 1.0f, 0.0f );
 
                     if ( pxScene1 != nullptr )
                     {
@@ -370,7 +406,6 @@ namespace ets2la_plugin
                             {
                                 hasHit = true;
                                 closestDist = hit1.block.distance;
-                                bestNormal = hit1.block.normal;
                                 hitFromDynamicScene = false;
                             }
                         }
@@ -399,7 +434,6 @@ namespace ets2la_plugin
                                 {
                                     hasHit = true;
                                     closestDist = hit2.block.distance;
-                                    bestNormal = hit2.block.normal;
                                     hitFromDynamicScene = true;
                                 }
                             }
@@ -416,106 +450,56 @@ namespace ets2la_plugin
                             localDir.z * hitDistance + _mountOffset.z
                         };
 
-                        const float heightAboveGround = localHit.y;
-                        uint8_t isTruck = 0;
-                        LidarHitClass hitClass = LidarHitClass::Unknown;
-
-                        if ( hitFromDynamicScene )
-                        {
-                            if ( heightAboveGround < 0.70f )
-                            {
-                                hitClass = LidarHitClass::DynamicProp;
-                                isTruck = 0;
-                            }
-                            else if ( heightAboveGround >= 1.85f )
-                            {
-                                hitClass = LidarHitClass::TrafficTruck;
-                                isTruck = 1;
-                            }
-                            else
-                            {
-                                hitClass = LidarHitClass::TrafficCar;
-                                isTruck = 0;
-                            }
-                        }
-                        else
-                        {
-                            isTruck = 0;
-                            const float normalUp = bestNormal.y;
-
-                            if ( normalUp > 0.60f )
-                            {
-                                const float maxRoadDelta = 0.60f + 0.08f * hitDistance;
-                                const bool isNearRoadElevation = std::abs( localHit.y ) <= maxRoadDelta;
-                                const bool isRoadCorridor = std::abs( localHit.x ) <= 14.0f;
-
-                                if ( isNearRoadElevation && ( isRoadCorridor || normalUp > 0.92f ) )
-                                {
-                                    hitClass = LidarHitClass::RoadSurface;
-                                }
-                                else
-                                {
-                                    hitClass = LidarHitClass::GroundTerrain;
-                                }
-                            }
-                            else
-                            {
-                                if ( heightAboveGround <= 1.8f && std::abs( localHit.x ) <= 20.0f )
-                                {
-                                    hitClass = LidarHitClass::BarrierGuardrail;
-                                }
-                                else
-                                {
-                                    hitClass = LidarHitClass::BuildingStructure;
-                                }
-                            }
-                        }
-
-                        float baseReflectivity = 0.50f;
-                        switch ( hitClass )
-                        {
-                            case LidarHitClass::TrafficTruck:
-                            case LidarHitClass::TrafficCar:
-                                baseReflectivity = 0.85f;
-                                break;
-                            case LidarHitClass::DynamicProp:
-                                baseReflectivity = 0.95f;
-                                break;
-                            case LidarHitClass::RoadSurface:
-                                baseReflectivity = 0.45f;
-                                break;
-                            case LidarHitClass::BarrierGuardrail:
-                                baseReflectivity = 0.75f;
-                                break;
-                            case LidarHitClass::BuildingStructure:
-                                baseReflectivity = 0.60f;
-                                break;
-                            case LidarHitClass::GroundTerrain:
-                                baseReflectivity = 0.25f;
-                                break;
-                            default:
-                                baseReflectivity = 0.50f;
-                                break;
-                        }
-
                         const float distFalloff = ( hitDistance < _maxRange )
                             ? ( 1.0f - ( hitDistance / _maxRange ) )
                             : 0.0f;
-                        const float intensity = std::clamp(
-                            baseReflectivity * ( 0.4f + 0.6f * distFalloff ),
-                            0.05f,
-                            1.0f
+
+                        bool isDynamicHit = hitFromDynamicScene;
+                        if ( !isDynamicHit && !_activeDynamicBoxes.empty() )
+                        {
+                            const float3_t worldHit = float3_t{
+                                globalSensorPos.x + worldDir.x * hitDistance,
+                                globalSensorPos.y + worldDir.y * hitDistance,
+                                globalSensorPos.z + worldDir.z * hitDistance
+                            };
+
+                            for ( const auto& box : _activeDynamicBoxes )
+                            {
+                                const float dx = worldHit.x - box.center.x;
+                                const float dy = worldHit.y - box.center.y;
+                                const float dz = worldHit.z - box.center.z;
+                                const float distSq = dx * dx + dy * dy + dz * dz;
+
+                                if ( distSq > box.radiusSq )
+                                {
+                                    continue;
+                                }
+
+                                const float3_t boxLocal = float3_t{ dx, dy, dz }.rotate( box.invRot );
+                                if ( std::abs( boxLocal.x ) <= box.halfExtents.x &&
+                                     std::abs( boxLocal.y ) <= box.halfExtents.y &&
+                                     std::abs( boxLocal.z ) <= box.halfExtents.z )
+                                {
+                                    isDynamicHit = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        const uint8_t hitType = static_cast< uint8_t >(
+                            isDynamicHit ? LidarHitType::Dynamic : LidarHitType::Static
                         );
+                        const uint8_t isDynamic = isDynamicHit ? 1 : 0;
 
                         hits.push_back( LidarPoint{
                             localHit.x,
                             localHit.y,
                             localHit.z,
                             hitDistance,
-                            intensity,
+                            distFalloff,
                             static_cast< uint16_t >( _rayChannels[ i ] ),
-                            isTruck,
-                            static_cast< uint8_t >( hitClass )
+                            hitType,
+                            isDynamic
                         } );
                     }
                 }

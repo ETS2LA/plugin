@@ -317,7 +317,7 @@ namespace ets2la_plugin
         // Local\ETS2LALidar
         if (this->lidar_processor_ != nullptr)
         {
-            this->lidar_processor_->Tick(this->truck_pos);
+            this->lidar_processor_->Tick(this->truck_pos, this->traffic_processor_);
         }
 
         // Local\ETS2LAPluginInput
