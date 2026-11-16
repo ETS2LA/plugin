@@ -43,6 +43,8 @@ namespace ets2la_plugin
         quat_t _smoothedRot;
         bool _hasSmoothedRot;
 
+        double lastTickTime = 0.0;
+
         template < class... T >
         void LogDebug( const char* fmtString, T&&... args ) const
         {

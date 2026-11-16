@@ -192,9 +192,9 @@ namespace ets2la_plugin
         std::vector< float > beamAzimuths;
         beamAzimuths.reserve( _horizontalBeams );
 
-        constexpr uint32_t rearCount = 50;
-        constexpr uint32_t sideCount = 130;
-        constexpr uint32_t fwdCount = 152;
+        constexpr uint32_t rearCount = 30;
+        constexpr uint32_t sideCount = 50;
+        constexpr uint32_t fwdCount = 140;
 
         for ( uint32_t i = 0; i < rearCount; ++i )
         {
@@ -261,6 +261,13 @@ namespace ets2la_plugin
         {
             return;
         }
+
+        double cur = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+        if (cur - lastTickTime < 1.0/5.0)
+        {
+            return;
+        }
+        lastTickTime = cur;
 
         auto* const scene1 = baseCtrl->get_physics_scene_1();
         auto* const scene2 = baseCtrl->get_physics_scene_2();
@@ -340,8 +347,6 @@ namespace ets2la_plugin
             std::chrono::system_clock::now().time_since_epoch()
         ).count();
 
-        _lidarBuffer->magic = 0x4C494452;
-        _lidarBuffer->version = 1;
         _lidarBuffer->max_points = static_cast< uint32_t >( MAX_LIDAR_POINTS );
         _lidarBuffer->timestamp = static_cast< uint64_t >( now );
         _lidarBuffer->sensor_pos_x = globalTruckPos.x;

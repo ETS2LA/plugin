@@ -51,13 +51,13 @@ namespace ets2la_plugin
         constexpr int FFB_FX_OTHER    = 31;
 
         // Default PID parameters
-        constexpr double DEFAULT_SERVO_KP_NEAR   = 30000.0;
+        constexpr double DEFAULT_SERVO_KP_NEAR   = 45000.0;
         constexpr double DEFAULT_SERVO_KP_FAR    = 45000.0;
-        constexpr double DEFAULT_SERVO_KD        = 8500.0;
+        constexpr double DEFAULT_SERVO_KD        = 10000.0;
         constexpr double DEFAULT_SERVO_KI        = 10000.0;
         constexpr double DEFAULT_SERVO_CAP       = 4200.0;
-        constexpr double DEFAULT_FF_DAMPING      = 400.0;
-        constexpr double DEFAULT_FF_FRICTION     = 160.0;
+        constexpr double DEFAULT_FF_DAMPING      = 500.0;
+        constexpr double DEFAULT_FF_FRICTION     = 180.0;
         constexpr double TARGET_SMOOTH_TAU_S     = 0.045;
 
         const GUID k_constant_force = {
