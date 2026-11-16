@@ -48,6 +48,13 @@ namespace ets2la_plugin
         float acceleration;
     };
 
+    struct DynamicBox
+    {
+        float3_t center;
+        float3_t halfExtents;
+        quat_t rot;
+    };
+
     class TrafficProcessor
     {
         private:
@@ -67,6 +74,7 @@ namespace ets2la_plugin
             std::vector<processor_semaphore_object_t> semaphore_objects = {};
             std::vector<prism::game_physics_vehicle_u*> tmp_vehicles = {};
             std::vector<prism::game_trailer_actor_u*> tmp_trailers = {};
+            mutable std::vector<DynamicBox> _activeDynamicBoxes = {};
 
             void clear_data();
             short get_uid_for_vehicle(uintptr_t vehicle_ptr) const;
@@ -92,5 +100,7 @@ namespace ets2la_plugin
             
             void tick(scs_value_dplacement_t truck_pos);
             float3_t get_center_coords(const prism::placement_t& placement, const prism::aabox_t& aabox) const;
+            const std::vector<DynamicBox>& GetActiveDynamicBoxes() const { return _activeDynamicBoxes; }
+            const std::vector<DynamicBox>& get_active_dynamic_boxes() const { return _activeDynamicBoxes; }
     };
 }

@@ -18,8 +18,10 @@
 #include "prism/navigation/route_task.hpp"
 
 #include "prism/game_actor.hpp"
+#include "prism/physics/physics_scene_physx.hpp"
 
 #include "processing/traffic.hpp"
+#include "processing/lidar_processor.hpp"
 
 #include <ctime>
 #include <cmath>
@@ -312,6 +314,12 @@ namespace ets2la_plugin
         // Local\ETS2LARoute
         this->get_navigation_data();
 
+        // Local\ETS2LALidar
+        if (this->lidar_processor_ != nullptr)
+        {
+            this->lidar_processor_->Tick(this->truck_pos, this->traffic_processor_);
+        }
+
         // Local\ETS2LAPluginInput
         this->override_inputs();
         if (this->ffb_processor_ != nullptr)
@@ -374,6 +382,12 @@ namespace ets2la_plugin
             return false;
         }
 
+        if ( !prism::physics_scene_physx_t::scan_patterns() )
+        {
+            this->error( "Could not find physics_scene_physx patterns" );
+            return false;
+        }
+
         try
         {
             prism::input_mix_t::scan_patterns();
@@ -427,6 +441,8 @@ namespace ets2la_plugin
 
         this->traffic_processor_ = new TrafficProcessor(scs_log_, this->memory_manager_);
         
+        this->lidar_processor_ = new LidarProcessor(scs_log_, this->memory_manager_);
+
         this->ffb_processor_ = new FfbProcessor(scs_log_);
         this->ffb_processor_->init(this->init_params_);
 
@@ -444,6 +460,8 @@ namespace ets2la_plugin
         prism::vehicle_shared_u::set_steering_override(false);
         delete this->ffb_processor_;
         this->ffb_processor_ = nullptr;
+        delete this->lidar_processor_;
+        this->lidar_processor_ = nullptr;
         delete this->traffic_processor_;
         this->traffic_processor_ = nullptr;
         delete this->memory_manager_;

@@ -10,6 +10,7 @@
 
 namespace ets2la_plugin
 {
+    class LidarProcessor;
 
 #pragma pack(push, 1)
 
@@ -185,6 +186,46 @@ namespace ets2la_plugin
     };
     static_assert(sizeof(RouteMemData) == 96'000);
 
+    enum class LidarHitType : uint8_t
+    {
+        None    = 0,
+        Static  = 1,
+        Dynamic = 2
+    };
+
+    struct LidarPoint
+    {
+        float x;
+        float y;
+        float z;
+        float distance;
+        float intensity;
+        uint16_t channel;
+        uint8_t hit_type;
+        uint8_t is_dynamic;
+    };
+    static_assert(sizeof(LidarPoint) == 24);
+
+    inline constexpr size_t MAX_LIDAR_POINTS = 65536;
+
+    struct LidarMemData
+    {
+        uint32_t magic;
+        uint32_t version;
+        uint32_t point_count;
+        uint32_t max_points;
+        uint64_t timestamp;
+        float sensor_pos_x;
+        float sensor_pos_y;
+        float sensor_pos_z;
+        float sensor_rot_w;
+        float sensor_rot_x;
+        float sensor_rot_y;
+        float sensor_rot_z;
+        LidarPoint points[MAX_LIDAR_POINTS];
+    };
+    static_assert(sizeof(LidarMemData) == 52 + MAX_LIDAR_POINTS * sizeof(LidarPoint));
+
 #pragma pack(pop)
 
     class CCore
@@ -199,6 +240,7 @@ namespace ets2la_plugin
         CMemoryHandler *memory_manager_ = nullptr;
         TrafficProcessor *traffic_processor_ = nullptr;
         FfbProcessor *ffb_processor_ = nullptr;
+        LidarProcessor *lidar_processor_ = nullptr;
 
         mutable bool was_overriding_acceleration = false;
         mutable bool was_overriding_steering = false;
@@ -226,6 +268,7 @@ namespace ets2la_plugin
 
         TrafficProcessor *get_traffic_processor() const { return this->traffic_processor_; }
         FfbProcessor *get_ffb_processor() const { return this->ffb_processor_; }
+        LidarProcessor *get_lidar_processor() const { return this->lidar_processor_; }
         CMemoryHandler *get_memory_manager() const { return this->memory_manager_; }
 
         template <class... T>
