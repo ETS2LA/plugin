@@ -254,6 +254,82 @@ namespace ets2la_plugin
         }
     }
 
+    void LidarProcessor::UpdateColliderStreaming(
+        prism::base_ctrl_u* baseCtrl,
+        const float3_t& globalSensorPos,
+        const float3_t& globalTruckPos,
+        double nowSec
+    )
+    {
+        constexpr float kNearForwardDist  = 14.0f;
+        constexpr float kMaxForwardDist   = 40.0f;
+        constexpr float kBackwardDist     = 5.0f;
+        constexpr float kSideDist         = 3.5f;
+        constexpr float kSliceDepth       = 8.0f;
+        constexpr float kSliceOverlap     = 1.0f;
+        constexpr auto  kTimeBudget       = std::chrono::microseconds( 1500 );
+
+        if ( _hasPrevTruckPos )
+        {
+            const double dt = nowSec - _prevColliderTime;
+            if ( dt > 0.01 && dt < 2.0 )
+            {
+                const float dx = globalTruckPos.x - _prevTruckPos.x;
+                const float dy = globalTruckPos.y - _prevTruckPos.y;
+                const float dz = globalTruckPos.z - _prevTruckPos.z;
+                const float dist = std::sqrt( dx * dx + dy * dy + dz * dz );
+                if ( dist < 80.0f )
+                {
+                    const float instantSpeed = static_cast< float >( dist / dt );
+                    _smoothedSpeed = _smoothedSpeed * 0.65f + instantSpeed * 0.35f;
+                }
+            }
+        }
+        _prevTruckPos     = globalTruckPos;
+        _prevColliderTime = nowSec;
+        _hasPrevTruckPos  = true;
+
+        const float forwardLookahead = std::clamp( kNearForwardDist + _smoothedSpeed * 1.1f, kNearForwardDist, kMaxForwardDist );
+        const auto startTime = std::chrono::steady_clock::now();
+
+        // Always keep the immediate corridor around the truck active.
+        baseCtrl->ensure_colliders_in_oriented_box(
+            globalSensorPos, _smoothedRot, kNearForwardDist, kBackwardDist, kSideDist
+        );
+
+        if ( forwardLookahead <= kNearForwardDist + 0.5f )
+        {
+            _colliderFarOffset = kNearForwardDist;
+            return;
+        }
+
+        if ( _colliderFarOffset < kNearForwardDist || _colliderFarOffset >= forwardLookahead )
+        {
+            _colliderFarOffset = kNearForwardDist;
+        }
+
+        // Incrementally stream the far corridor in 8m slices until the per-tick time budget is spent.
+        const float startOffset = _colliderFarOffset;
+        do
+        {
+            if ( std::chrono::steady_clock::now() - startTime >= kTimeBudget )
+            {
+                break;
+            }
+
+            const float sliceStart = _colliderFarOffset;
+            const float sliceEnd   = ( std::min )( sliceStart + kSliceDepth, forwardLookahead );
+            const float sliceBack  = -( ( std::max )( 0.0f, sliceStart - kSliceOverlap ) );
+
+            baseCtrl->ensure_colliders_in_oriented_box(
+                globalSensorPos, _smoothedRot, sliceEnd, sliceBack, kSideDist
+            );
+
+            _colliderFarOffset = ( sliceEnd >= forwardLookahead - 0.1f ) ? kNearForwardDist : sliceEnd;
+        }
+        while ( _colliderFarOffset != startOffset );
+    }
+
     void LidarProcessor::Tick( const scs_value_dplacement_t& truckPos, const TrafficProcessor* trafficProcessor )
     {
         auto* const baseCtrl = prism::base_ctrl_u::get();
@@ -307,6 +383,10 @@ namespace ets2la_plugin
         const prism::physx::PxVec3 sensorPxPos2 = scene2 ? scene2->to_physx_pos( sensorPlacement ) : prism::physx::PxVec3( 0, 0, 0 );
         const float3_t globalTruckPos = truckPlacement.to_global_position();
         const float3_t globalSensorPos = sensorPlacement.to_global_position();
+
+        // ETS2 lazy-loads static colliders only within ~0.5x of the vehicle's AABB dimensions.
+        // Stream colliders in a speed-scaled, narrower corridor with a per-tick time budget.
+        UpdateColliderStreaming( baseCtrl, globalSensorPos, globalTruckPos, cur );
 
         _activeDynamicBoxes.clear();
         if ( trafficProcessor != nullptr )

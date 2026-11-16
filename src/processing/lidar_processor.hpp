@@ -9,6 +9,11 @@
 
 namespace ets2la_plugin
 {
+    namespace prism
+    {
+        class base_ctrl_u;
+    }
+
     class TrafficProcessor;
 
     class LidarProcessor
@@ -44,6 +49,18 @@ namespace ets2la_plugin
         bool _hasSmoothedRot;
 
         double lastTickTime = 0.0;
+        float3_t _prevTruckPos{};
+        double _prevColliderTime = 0.0;
+        bool _hasPrevTruckPos = false;
+        float _smoothedSpeed = 0.0f;
+        float _colliderFarOffset = 14.0f;
+
+        void UpdateColliderStreaming(
+            prism::base_ctrl_u* baseCtrl,
+            const float3_t& globalSensorPos,
+            const float3_t& globalTruckPos,
+            double nowSec
+        );
 
         template < class... T >
         void LogDebug( const char* fmtString, T&&... args ) const

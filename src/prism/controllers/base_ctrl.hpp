@@ -1,11 +1,13 @@
 #pragma once
 #include "prism/collections/array_dyn.hpp"
 #include "prism/collections/list_dyn.hpp"
+#include "prism/common.hpp"
 #include "prism/unit/unit.hpp"
 
 namespace ets2la_plugin::prism
 {
     class physics_scene_physx_t;
+    class kdop_t;
 
 #pragma pack( push, 1 )
 
@@ -118,6 +120,9 @@ namespace ets2la_plugin::prism
         static uint32_t physics_scene_1_offset;
         static uint32_t physics_scene_2_offset;
 
+        using ensure_colliders_fn_t = void( base_ctrl_u*, const kdop_t*, bool );
+        static ensure_colliders_fn_t* ensure_colliders_fn;
+
         static bool scan_patterns();
         static base_ctrl_u* get();
 
@@ -126,6 +131,15 @@ namespace ets2la_plugin::prism
 
         physics_scene_physx_t* get_physics_scene_1() const;
         physics_scene_physx_t* get_physics_scene_2() const;
+
+        void ensure_colliders_in_oriented_box(
+            const float3_t& global_pos,
+            const quat_t& rot,
+            float forward_dist,
+            float backward_dist,
+            float side_dist,
+            float vertical_dist = 20.0f
+        );
     };
     // static_assert( sizeof( base_ctrl_u ) == 0x3088 );
 

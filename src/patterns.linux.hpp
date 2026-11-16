@@ -31,6 +31,12 @@ namespace ets2la_plugin::patterns
             inline constexpr auto offset_scene_1 = 3;
             inline constexpr auto offset_scene_2 = 15;
         }
+
+        namespace ensure_colliders
+        {
+            inline constexpr auto pattern = "";
+            inline constexpr auto offset  = 0;
+        }
     }
 
     namespace game_ctrl
